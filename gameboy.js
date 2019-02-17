@@ -369,9 +369,82 @@ processor = {
             processor._reg.t = 4;
         }
 
+        /* 
+            Reset routines-- jump to address in memory and execute
+        */
 
+        //0xC7
+        R_0: function(){
+            processor._reg.sp -= 2;
+            /* write 2 bytes of pc to stack */
+            processor._reg.pc=0x00;
+            processor._reg.m=3;
+            processor._reg.t=12;
+        }
 
-        
+        //0xD7
+        R_10: function(){
+            processor._reg.sp -= 2;
+            /* write 2 bytes of pc to stack */
+            processor._reg.pc=0x10;
+            processor._reg.m=3;
+            processor._reg.t=12;
+        }
+
+        //0xE7
+        R_20: function(){
+            processor._reg.sp -= 2;
+            /* write 2 bytes of pc to stack */
+            processor._reg.pc=0x20;
+            processor._reg.m=3;
+            processor._reg.t=12;
+        }        
+
+        //0xF7
+        R_30: function(){
+            processor._reg.sp -= 2;
+            /* write 2 bytes of pc to stack */
+            processor._reg.pc=0x30;
+            processor._reg.m=3;
+            processor._reg.t=12;
+        }    
+
+        //0xCF
+        R_8: function(){
+            processor._reg.sp -= 2;
+            /* write 2 bytes of pc to stack */
+            processor._reg.pc=0x8;
+            processor._reg.m=3;
+            processor._reg.t=12;
+        }
+
+        //0xDF
+        R_18: function(){
+            processor._reg.sp -= 2;
+            /* write 2 bytes of pc to stack */
+            processor._reg.pc=0x18;
+            processor._reg.m=3;
+            processor._reg.t=12;
+        }
+
+        //0xEF
+        R_28: function(){
+            processor._reg.sp -= 2;
+            /* write 2 bytes of pc to stack */
+            processor._reg.pc=0x28;
+            processor._reg.m=3;
+            processor._reg.t=12;
+        }
+
+        //0xFF
+        R_38: function(){
+            processor._reg.sp -= 2;
+            /* write 2 bytes of pc to stack */
+            processor._reg.pc=0x38;
+            processor._reg.m=3;
+            processor._reg.t=12;
+        }
+    
     }
     
 }
@@ -389,7 +462,7 @@ MM = {
         [8000-97FF] Tile RAM
         [9800-9BFF] BG Map Data 1
         [9C00-9FFF] BG Map Data 2
-    [A000-BFFF] External RAM
+    [A000-BFFF] External RAM !!RAM MOUNTED HERE IS NON-VOLATILE, KEEPS GAME DATA, ETC
     [C000-DFFF] RAM
     [E000-FDFF] RAM shadow
     [FE00-FE9F] Sprite Information (OAM)
@@ -403,7 +476,7 @@ MM = {
     _rom: [],
     _GRAM: [],
     _RAM: [],
-    _eRAM: [],
+    _eRAM: [], //non-volatile save data
     _zRAM: [],
 
     _intF: 0, //interrupt flags
