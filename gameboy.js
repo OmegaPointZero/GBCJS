@@ -41,8 +41,17 @@ processor = {
     exec: function(){
         //read the instruction in program counter
         ins = MM.read(processor._reg.pc);
-        //lookup the instruction in the instruction map
-        // to-do: finish instruction set, make instruction map
+        /*
+            Here shall be a function to lookup the function
+            by the OPCODe read and call it
+        */
+        processor._reg.pc++;
+        processor._clock.m+=processor._reg.m;
+        processor._clock.t+=processor._reg.t;
+        /*
+            Check for interrupts, do GPU stuff?
+            Still need to work out how timing works
+        */
     }
 
     _instr: {
@@ -408,10 +417,346 @@ processor = {
         },
 
         //0x22
-        LD_aHLd_a: function(){
-            MM.write(l_addr(processor._reg.b,processor._reg.c),processor._reg.a);
+        LD_aHLi_a: function(){
+            var hl = l_addr(processor._reg.h,processor._reg.l);
+            MM.write(hl,processor._reg.a);
+            hl += 1;
+            processor._reg.h=(hl&0xff00)>>8;
+            processor._reg.l=(hl&0xff);
             processor._reg.m=2;
             processor._reg.t=8;
+        },
+
+        //0x32
+        LD_aHLd_a: function(){
+            var hl = l_addr(processor._reg.h,processor._reg.l);
+            MM.write(hl,processor._reg.a);
+            hl -= 1;
+            processor._reg.h=(hl&0xff00)>>8;
+            processor._reg.l=(hl&0xff);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x06
+        LD_Bd8: function(){
+            processor._reg.pc++
+            processor._reg.b=MM.read(processor._reg.pc);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x16
+        LD_Dd8: function(){
+            processor._reg.pc++
+            processor._reg.d=MM.read(processor._reg.pc);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x26
+        LD_Hd8: function(){
+            processor._reg.pc++
+            processor._reg.b=MM.read(processor._reg.pc);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x36
+        LD_aHLd8: function(){
+            processor._reg.pc++
+            var hl = l_addr(processor._reg.h,processor._reg.l);
+            MM.write(hl, MM.read(processor._reg.pc));
+            processor._reg.m=3;
+            processor._reg.t=12;
+        },
+
+        //0x0a
+        LD_AaBC: function(){
+            processor._reg.a=MM.read(l_addr(processor._reg.b,processor._reg.c));
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x1a
+        LD_AaDE: function(){
+            processor._reg.a=MM.read(l_addr(processor._reg.d,processor._reg.e));
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x2a
+        LD_AaHLi: function(){
+            var hl = l_addr(processor._reg.h,processor._reg.l);
+            processor._reg.a=MM.read(hl);
+            hl += 1;
+            processor._reg.h=hl&0xff00>>8;
+            processor._reg.l=hl&0xff;
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x3a
+        LD_AaHLd: function(){
+            var hl = l_addr(processor._reg.h,processor._reg.l);
+            processor._reg.a=MM.read(hl);
+            hl += 1;
+            processor._reg.h=hl&0xff00>>8;
+            processor._reg.l=hl&0xff;            
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x0e
+        LD_Cd8: function(){
+            processor._reg.pc++;
+            processor._reg.c=MM.read(processor._reg.pc);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x1e
+        LD_Ed8: function(){
+            processor._reg.pc++;
+            processor._reg.e=MM.read(processor._reg.pc);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x2e
+        LD_Ld8: function(){
+            processor._reg.pc++;
+            processor._reg.l=MM.read(processor._reg.pc);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x3e
+        LD_Ad8: function(){
+            processor._reg.pc++;
+            processor._reg.a=MM.read(processor._reg.pc);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0xe0
+        LD_ff00nA: function(){
+            var ad = 0xff00;
+            processor._reg.pc++;
+            ad += read(processor._reg.pc);
+            write(ad,processor._reg.a);
+            processor._reg.m=3;
+            processor._reg.t=12;
+        },
+           
+        //0xf0
+        LD_Aff00n: function(){
+            var ad = 0xff00;
+            processor._reg.pc++;
+            ad += read(processor._reg.pc);
+            write(processor._reg.a,MM.read(ad));
+            processor._reg.m=3;
+            processor._reg.t=12;
+        },
+    
+        //0xe2
+        LD_ff00cA: function(){
+            var ac = 0xff00;
+            processor._reg.pc++;
+            ac += read(processor._reg.pc);
+            write(ac,processor._reg.a);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+           
+        //0xf2
+        LD_Aff00c: function(){
+            var ac = 0xff00;
+            processor._reg.pc++;
+            ac += read(processor._reg.pc);
+            write(processor._reg.a,MM.read(ac));
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0xea
+        LD_nnA: function(){
+            processor._reg.pc++;
+            adr = processor._reg.pc;
+            adr = adr<<8;
+            processor._reg.pc++;
+            adr == processor._reg.pc;
+            write(adr,processor._reg.a);
+            processor._reg.m=4;
+            processor._reg.t=16;
+        },
+           
+        //0xfa
+        LD_Ann: function(){
+            processor._reg.pc++;
+            adr = processor._reg.pc;
+            adr = adr<<8;
+            processor._reg.pc++;
+            adr == processor._reg.pc;
+            write(adr,processor._reg.a);
+            processor._reg.m=4;
+            processor._reg.t=16;
+        },
+
+        //  !!! END OF 8-BIT MOVE/LOAD/STORE INSTRUCTIONS !!!
+
+        /*
+            16-BIT MOVE/LOAD/STORE INSTRUCTIONS
+        */
+
+        //0x01
+        LD_BCnn: function(){
+            processor._reg.pc++;
+            MM.write(processor._reg.c,MM.read(processor._reg.pc));
+            processor._reg.pc++;
+            MM.write(processor._reg.b,MM.read(processor._reg.pc));
+            processor._reg.m=3;
+            processor._reg.t=12;
+        },
+           
+        //0x11
+        LD_DEnn: function(){
+            processor._reg.pc++;
+            MM.write(processor._reg.e,MM.read(processor._reg.pc));
+            processor._reg.pc++;
+            MM.write(processor._reg.d,MM.read(processor._reg.pc));
+            processor._reg.m=3;
+            processor._reg.t=12;
+        },
+
+        //0x21
+        LD_HLnn: function(){
+            processor._reg.pc++;
+            MM.write(processor._reg.h,MM.read(processor._reg.pc));
+            processor._reg.pc++;
+            MM.write(processor._reg.l,MM.read(processor._reg.pc));
+            processor._reg.m=3;
+            processor._reg.t=12;
+        },
+           
+        //0x31
+        LD_SPnn: function(){
+            processor._reg.pc++;
+            MM.write(processor._reg.c,MM.read(processor._reg.pc));
+            processor._reg.pc++;
+            MM.write(processor._reg.b,MM.read(processor._reg.pc));
+            processor._reg.m=3;
+            processor._reg.t=12;
+        },
+
+        //0xC1
+        POP_BC: function(){
+            processor._reg.c = MM.read(processor._reg.sp);
+            processor._reg.sp++;
+            processor._reg.b = M.read(processor._reg.sp);
+            processor._reg.sp++;
+            processor._reg.m=3;
+            processor._reg.t=12;            
+        },
+
+        //0xD1
+        POP_DE: function(){
+            processor._reg.e = MM.read(processor._reg.sp);
+            processor._reg.sp++;
+            processor._reg.d = M.read(processor._reg.sp);
+            processor._reg.sp++;
+            processor._reg.m=3;
+            processor._reg.t=12;            
+        },
+
+        //0xE1
+        POP_HL: function(){
+            processor._reg.l = MM.read(processor._reg.sp);
+            processor._reg.sp++;
+            processor._reg.h = M.read(processor._reg.sp);
+            processor._reg.sp++;
+            processor._reg.m=3;
+            processor._reg.t=12;            
+        },
+
+        //0xF1
+        POP_AF: function(){
+            processor._reg.f = MM.read(processor._reg.sp);
+            processor._reg.sp++;
+            processor._reg.a = M.read(processor._reg.sp);
+            processor._reg.sp++;
+            processor._reg.m=3;
+            processor._reg.t=12;            
+        },
+
+        //0xC5
+        PUSH_BC: function(){
+            processor._reg.sp--;
+            MM.write(processor._reg.sp,processor._reg.b);
+            processor._reg.sp--;
+            MM.write(processor._reg.sp,processor._reg.c);
+            processor._reg.m=4;
+            processor._reg.t=16;            
+        },
+
+        //0xD5
+        PUSH_DE: function(){
+            processor._reg.sp--;
+            MM.write(processor._reg.sp,processor._reg.d);
+            processor._reg.sp--;
+            MM.write(processor._reg.sp,processor._reg.e);
+            processor._reg.m=4;
+            processor._reg.t=16;            
+        },
+
+        //0xE5
+        PUSH_HL: function(){
+            processor._reg.sp--;
+            MM.write(processor._reg.sp,processor._reg.h);
+            processor._reg.sp--;
+            MM.write(processor._reg.sp,processor._reg.l);
+            processor._reg.m=4;
+            processor._reg.t=16;            
+        },
+
+        //0xF5
+        PUSH_AF: function(){
+            processor._reg.sp--;
+            MM.write(processor._reg.sp,processor._reg.a);
+            processor._reg.sp--;
+            MM.write(processor._reg.sp,processor._reg.f);
+            processor._reg.m=4;
+            processor._reg.t=16;            
+        },
+
+        //0x08
+        LD_nnSP: function(){
+            processor._reg.pc++;
+            var a = MM.read(processor._reg.pc);
+            processor._reg.pc++;
+            var b = MM.read(processor._reg.pc);
+            var ba = b+a;                    
+            MM.write(ba,processor._reg.sp);
+            processor._reg.m=5;
+            processor._reg.t=20;            
+        },
+
+        //0xF8
+        LDHL_SPd8: function(){
+            var s = processor._reg.sp  
+            processor._reg.pc++;
+            s += MM.read(processor._reg.pc++);
+            s.write(
+            processor._reg.m=3;
+            processor._reg.t=12;            
+        },
+
+        //0xF9
+        LD_SPHL: function(){
+
+
+            processor._reg.m=2;
+            processor._reg.t=8;            
         },
 
 
@@ -421,81 +766,81 @@ processor = {
 
         //0xC7
         R_0: function(){
-            processor._reg.sp -= 2;
-            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc);
             processor._reg.pc=0x00;
-            processor._reg.m=3;
-            processor._reg.t=12;
+            processor._reg.m=4;
+            processor._reg.t=16;
             MM.reset();
         },
 
         //0xD7
         R_10: function(){
-            processor._reg.sp -= 2;
-            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc);
             processor._reg.pc=0x10;
-            processor._reg.m=3;
-            processor._reg.t=12;
+            processor._reg.m=4;
+            processor._reg.t=16;
             MM.reset();
         },
 
         //0xE7
         R_20: function(){
-            processor._reg.sp -= 2;
-            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc);
             processor._reg.pc=0x20;
-            processor._reg.m=3;
-            processor._reg.t=12;
+            processor._reg.m=4;
+            processor._reg.t=16;
             MM.reset();
         },
         
         //0xF7
         R_30: function(){
-            processor._reg.sp -= 2;
-            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc);
             processor._reg.pc=0x30;
-            processor._reg.m=3;
-            processor._reg.t=12;
+            processor._reg.m=4;
+            processor._reg.t=16;
             MM.reset();
         },
 
         //0xCF
         R_8: function(){
-            processor._reg.sp -= 2;
-            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc);
             processor._reg.pc=0x8;
-            processor._reg.m=3;
-            processor._reg.t=12;
+            processor._reg.m=4;
+            processor._reg.t=16;
             MM.reset();
         },
 
         //0xDF
         R_18: function(){
-            processor._reg.sp -= 2;
-            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc);
             processor._reg.pc=0x18;
-            processor._reg.m=3;
-            processor._reg.t=12;
+            processor._reg.m=4;
+            processor._reg.t=16;
             MM.reset();
         },
 
         //0xEF
         R_28: function(){
-            processor._reg.sp -= 2;
-            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc);
             processor._reg.pc=0x28;
-            processor._reg.m=3;
-            processor._reg.t=12;
+            processor._reg.m=4;
+            processor._reg.t=16;
             MM.reset();
         },
 
         //0xFF
         R_38: function(){
-            processor._reg.sp -= 2;
-            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc);
             processor._reg.pc=0x38;
-            processor._reg.m=3;
-            processor._reg.t=12;
+            processor._reg.m=4;
+            processor._reg.t=16;
             MM.reset();
         },
 
@@ -507,9 +852,9 @@ processor = {
     _instMap = [
         // 0x00
         processor._instr.NOP,
-        processor._instr.NOP,
-processor._instr.NOP,
-processor._instr.NOP,
+        processor._instr.,
+processor._instr.,
+processor._instr.,
 processor._instr.NOP,
 processor._instr.NOP,
 processor._instr.NOP,
@@ -563,7 +908,9 @@ MM = {
 
     //long_addr: return value of 2 registers
     l_addr: function(first, second){
-        return first<<8+second;
+        var f = first & 0xff
+        var s = second & 0xff
+        return f<<8+s;
     },
 
     //read one byte at address
@@ -581,7 +928,10 @@ MM = {
 
 //    write value to address
     write: function(addr,value){
-        MM._memory[addr]=value
+        var v = value.split('');
+        for(var k=0;k<v.length;k++){
+            MM._memory[addr+k]=v[k]
+        }
     }
 }
 
