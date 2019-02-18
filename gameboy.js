@@ -405,7 +405,14 @@ processor = {
             MM.write(l_addr(processor._reg.d,processor._reg.e),processor._reg.a);
             processor._reg.m=2;
             processor._reg.t=8;
-        }
+        },
+
+        //0x22
+        LD_aHLd_a: function(){
+            MM.write(l_addr(processor._reg.b,processor._reg.c),processor._reg.a);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
 
 
         /* 
