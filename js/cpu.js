@@ -844,6 +844,18 @@ processor = {
             MM.reset();
         },
 
+        /* 
+            8-bit arithmetic sequences
+        */
+
+        //0x04
+        INC_B: function(){
+            processor._reg.b++;
+            var b = processor._reg.b;
+            processor._reg.b&=255;
+            /* Make function to set flag based off of calculations*/
+        },
+
     },
 
     _instMap: [],
