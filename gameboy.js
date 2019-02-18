@@ -25,22 +25,22 @@ processor = {
     //  AF, BC, DE, HL
     //  sp: stack pointer, pc: program counter
     //  t: time, m: machine time, f: flags
-    //  i: interrupts
+    //  i: interrupts flag, ime: interrupt master enable
     //  Flags:   Zero (Z), Subtract (N), Half-Carry(H),
     //           Carry (C)
     //           7 6 5 4 3 2 1 0
     //           Z N H C 0 0 0 0
 
     _reg: { a:0, f:0, b:0, c:0, d:0, e:0, h:0, l:0,
-        sp:0, pc:0, t:0, m:0, f:0, i:0},
+        sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
 
     _halt: 0,
     _stop: 0,
     _clock: {m:0, t:0},
 
-    _exec: function(){
-        //read the instruction at this address
-        ins = MM._read(processor._reg.pc);
+    exec: function(){
+        //read the instruction in program counter
+        ins = MM.read(processor._reg.pc);
         //lookup the instruction in the instruction map
         // to-do: finish instruction set, make instruction map
     }
@@ -391,6 +391,21 @@ processor = {
             processor._reg.t = 4;
         },
 
+        //   Other 8-bit load/move/store instructions
+        
+        //0x02
+        LD_aBC_a: function(){
+            MM.write(l_addr(processor._reg.b,processor._reg.c),processor._reg.a);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+        
+        //0x12
+        LD_aDE_a: function(){
+            MM.write(l_addr(processor._reg.d,processor._reg.e),processor._reg.a);
+            processor._reg.m=2;
+            processor._reg.t=8;
+        }
 
 
         /* 
@@ -400,91 +415,110 @@ processor = {
         //0xC7
         R_0: function(){
             processor._reg.sp -= 2;
-            /* write 2 bytes of pc to stack */
+            MM.write(processor._reg.sp,processor._reg.pc)
             processor._reg.pc=0x00;
             processor._reg.m=3;
             processor._reg.t=12;
-            MM._reset();
+            MM.reset();
         },
 
         //0xD7
         R_10: function(){
             processor._reg.sp -= 2;
-            /* write 2 bytes of pc to stack */
+            MM.write(processor._reg.sp,processor._reg.pc)
             processor._reg.pc=0x10;
             processor._reg.m=3;
             processor._reg.t=12;
-            MM._reset();
+            MM.reset();
         },
 
         //0xE7
         R_20: function(){
             processor._reg.sp -= 2;
-            /* write 2 bytes of pc to stack */
+            MM.write(processor._reg.sp,processor._reg.pc)
             processor._reg.pc=0x20;
             processor._reg.m=3;
             processor._reg.t=12;
-            MM._reset();
+            MM.reset();
         },
         
         //0xF7
         R_30: function(){
             processor._reg.sp -= 2;
-            /* write 2 bytes of pc to stack */
+            MM.write(processor._reg.sp,processor._reg.pc)
             processor._reg.pc=0x30;
             processor._reg.m=3;
             processor._reg.t=12;
-            MM._reset();
+            MM.reset();
         },
 
         //0xCF
         R_8: function(){
             processor._reg.sp -= 2;
-            /* write 2 bytes of pc to stack */
+            MM.write(processor._reg.sp,processor._reg.pc)
             processor._reg.pc=0x8;
             processor._reg.m=3;
             processor._reg.t=12;
-            MM._reset();
+            MM.reset();
         },
 
         //0xDF
         R_18: function(){
             processor._reg.sp -= 2;
-            /* write 2 bytes of pc to stack */
+            MM.write(processor._reg.sp,processor._reg.pc)
             processor._reg.pc=0x18;
             processor._reg.m=3;
             processor._reg.t=12;
-            MM._reset();
+            MM.reset();
         },
 
         //0xEF
         R_28: function(){
             processor._reg.sp -= 2;
-            /* write 2 bytes of pc to stack */
+            MM.write(processor._reg.sp,processor._reg.pc)
             processor._reg.pc=0x28;
             processor._reg.m=3;
             processor._reg.t=12;
-            MM._reset();
+            MM.reset();
         },
 
         //0xFF
         R_38: function(){
             processor._reg.sp -= 2;
-            /* write 2 bytes of pc to stack */
+            MM.write(processor._reg.sp,processor._reg.pc)
             processor._reg.pc=0x38;
             processor._reg.m=3;
             processor._reg.t=12;
-            MM._reset();
+            MM.reset();
         },
 
-    }
+    },
+
+    _instMap: [],
+    _cbInstMap: [],
+
+    _instMap = [
+        // 0x00
+        processor._instr.NOP,
+        processor._instr.NOP,
+processor._instr.NOP,
+processor._instr.NOP,
+processor._instr.NOP,
+processor._instr.NOP,
+processor._instr.NOP,
+processor._instr.NOP,
+processor._instr.NOP,
+processor._instr.NOP, 
+
+        //0x0A
+    ]
     
 }
 
 
 // Memory Mapper
 
-MemHandler = {
+MM = {
     /*
     _memory map:
 
@@ -506,8 +540,9 @@ MemHandler = {
     
     _booting: 1,
     _bootSeq: [],
-
+    _cartridge: [],
     _memory: [],
+
     init: function(){
         for(i=0;i<0xffff;i++){
             MM._memory[i]=0
@@ -515,13 +550,16 @@ MemHandler = {
     }
 
     reset: function(){
+        MM.init();
         MM._booting = 1;
     }
 
+    //long_addr: return value of 2 registers
     l_addr: function(first, second){
         return first<<8+second;
     },
 
+    //read one byte at address
     read: function(addr){
         if(MM._booting != 1){
             return MM._memory[addr]
@@ -534,6 +572,7 @@ MemHandler = {
         }
     },
 
+//    write value to address
     write: function(addr,value){
         MM._memory[addr]=value
     }
