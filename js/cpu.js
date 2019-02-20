@@ -685,6 +685,9 @@ processor = {
             processor._reg.sp++;
             processor._reg.a = M.read(processor._reg.sp);
             processor._reg.sp++;
+            /*
+                To do: Implement Flags suppport? How does POP trigger the subtraction or carry flags??
+            */
             processor._reg.m=3;
             processor._reg.t=12;            
         },
@@ -844,17 +847,112 @@ processor = {
             MM.reset();
         },
 
-        /* 
-            8-bit arithmetic sequences
-        */
+        //0x20
+        JRNZn: function(){
+            processor._reg.pc++;
+            // if zero flag is not set
+            if(processor._reg.f&(1<<7) != 0x80){
+                var byte = MM.read(processor._reg.pc)
+                if(byte&(1<<7)==0x80){
+                    var o = byte&0x7f;
+                    processor._reg.pc = processor._reg.pc + (-128+o);
+                    processor._reg.m = 3;
+                    processor._reg.t = 12;
+                } else if(byte&(1<<7)!=0x80){
+                    processor._reg.pc = processor._reg.pc + byte
+                    processor._reg.m = 3;
+                    processor._reg.t = 12;
+                }
+            } else {
+                processor._reg.m = 2;
+                processor._reg.m = 8;
+            } 
+        },
+
+        //0x30
+        JRNCn: function(){
+            processor._reg.pc++;
+            // if zero flag is not set
+            if(processor._reg.f&(1<<4) != 0x10){
+                var byte = MM.read(processor._reg.pc)
+                if(byte&(1<<7)==0x80){
+                    var o = byte&0x7f;
+                    processor._reg.pc = processor._reg.pc + (-128+o);
+                    processor._reg.m = 3;
+                    processor._reg.t = 12;
+                } else if(byte&(1<<7)!=0x80){
+                    processor._reg.pc = processor._reg.pc + byte
+                    processor._reg.m = 3;
+                    processor._reg.t = 12;
+                }
+            } else {
+                processor._reg.m = 2;
+                processor._reg.m = 8;
+            } 
+        },
+
+        //0x18
+        JRn: function(){
+            processor._reg.pc++;
+            var byte = MM.read(processor._reg.pc)
+            if(byte&(1<<7)==0x80){
+                var o = byte&0x7f;
+                processor._reg.pc = processor._reg.pc + (-128+o);
+                processor._reg.m = 3;
+                processor._reg.t = 12;
+            } else if(byte&(1<<7)!=0x80){
+                processor._reg.pc = processor._reg.pc + byte
+                processor._reg.m = 3;
+                processor._reg.t = 12;
+            }
+        },
+
+        //0x28
+        JRZn: function(){
+            processor._reg.pc++;
+            // if zero flag is not set
+            if(processor._reg.f&(1<<7) == 0x80){
+                var byte = MM.read(processor._reg.pc)
+                if(byte&(1<<7)==0x80){
+                    var o = byte&0x7f;
+                    processor._reg.pc = processor._reg.pc + (-128+o);
+                    processor._reg.m = 3;
+                    processor._reg.t = 12;
+                } else if(byte&(1<<7)!=0x80){
+                    processor._reg.pc = processor._reg.pc + byte
+                    processor._reg.m = 3;
+                    processor._reg.t = 12;
+                }
+            } else {
+                processor._reg.m = 2;
+                processor._reg.m = 8;
+            } 
+        },
+
+        //0x38
+        JRCn: function(){
+            processor._reg.pc++;
+            // if zero flag is not set
+            if(processor._reg.f&(1<<4) == 0x10){
+                var byte = MM.read(processor._reg.pc)
+                if(byte&(1<<7)==0x80){
+                    var o = byte&0x7f;
+                    processor._reg.pc = processor._reg.pc + (-128+o);
+                    processor._reg.m = 3;
+                    processor._reg.t = 12;
+                } else if(byte&(1<<7)!=0x80){
+                    processor._reg.pc = processor._reg.pc + byte
+                    processor._reg.m = 3;
+                    processor._reg.t = 12;
+                }
+            } else {
+                processor._reg.m = 2;
+                processor._reg.m = 8;
+            } 
+        },
 
         /* 
-            algo to check for half-carry:
-            var ob = processor._reg.b;
-            var sum = (ob&0xf) + 1;
-            if(sum&0x10==0x10){
-                processor._reg.f += (1<<5);
-            }
+            8-bit arithmetic sequences
         */
 
         //0x04
@@ -1299,6 +1397,85 @@ if((hl+bc)&0xff!=(hl+bc)){
             processor._reg.m = 2;
             processor._reg.t = 8;
         },        
+
+        //0xE8
+        ADD_SPn: function(){
+            processor._reg.f = 0;
+            /* Zero and sub flags set to 0, H and C get set*/
+            processor._reg.pc++;
+            var n = MM.read(processor._reg.pc);
+            var sp = processor._reg.sp;
+            var p = sp & 0xff;
+            if((n&0xf+p&0xf)&0x10==0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((n+p)&0xff!=(n+p)){
+                processor._reg.f += (1<<4);   
+            }
+            sp+=n;
+            processor._reg.sp = sp&0xffff;
+            processor._reg.m = 4;
+            processor._reg.t = 16;
+        },
+
+        //0x27
+        DAA: function(){
+            /* 
+                Weird instruction, not very well documented. Corrects/prepares the A register for BCD instructions. 
+
+                Exact process is apparently the following: take the least significant 4 bits of A. If the H flag is set or if the number is over 9, 0x6 is added to the register. The A register's 4 most significant bits get checked, If THIS digit is over 9 or the C flag is set, then 0x60 is added to the register. 
+
+            */
+
+            var h = (processor._reg.a>>4)&0xf;
+            var l = processor._reg.a&0xf;
+            var hf = processor._reg.f&(1<<5);
+            var cf = processor._reg.f&(1<<4);
+            if((l>9)||(hf==32){
+                processor._reg.a+=0x6;
+            }  
+            if((h>0)||(cf==16){
+                processor._reg.a+=0x60;
+            }
+
+            processor._reg.f=0;
+            if(processor._reg.a==0){
+                processor._reg.f+=(1<<7)
+            }
+            if((processor._reg.a&0xff) != processor._reg.a){
+                processor._reg.f+=(1<<4)
+            }
+            processor.register.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+
+        //0x37
+        SCF: function() {
+            /* Literally just sets the carry flag */ 
+            processor._reg.f &= (1<<7);
+            processor._reg.f += (1<<4);
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+
+        //0x1F
+        CPL: function(){
+            processor._reg.f &= 144;
+            processor._reg.f += 1<<6;
+            processor._reg.f += 1<<5;
+            processor._reg.m = 1;
+            processor._reg.t = 4;        
+        },
+
+        //0x3F
+        CCF: function(){
+            processor._reg.f &= (1<<7);
+            processor._reg.f += (1<<4);
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        }
+        
     },
 
     _instMap: [],
