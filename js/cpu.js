@@ -949,11 +949,13 @@ processor = {
         },
 
         //0x34
-        INC_HL: function(){
+        INC_aHL: function(){
             processor._reg.f = 0; 
-            var h = processor._reg.h<<8;
-            h += processor._reg.l;
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
             h++;
+            MM.write(hl,h);
             if((h&0x10)==0x10){
                 processor._reg.f += (1<<5);
             }
@@ -966,7 +968,7 @@ processor = {
         },
 
         //0x35
-        DEC_HL: function(){
+        DEC_aHL: function(){
             processor._reg.f = (1<<6); 
             var h = processor._reg.h<<8;
             h += processor._reg.l; 
@@ -1094,7 +1096,209 @@ processor = {
             processor._reg.m = 1;
         },
 
-        
+
+        /* 
+            16-bit arithmetic instructions
+
+        */
+
+        //0x03
+        INC_BC: function(){
+            processor._reg.f = 0; 
+            var b = processor._reg.b<<8;
+            b += processor._reg.c;
+            b++;
+            if((b&0x10)==0x10){
+                processor._reg.f += (1<<5);
+            }
+            b &= 0xffff;
+            if(b==0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.b = b>>8;
+            processor._reg.c = b&0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+
+        //0x0B
+        DEC_BC: function(){
+            processor._reg.f = (1<<6); 
+            var d = processor._reg.d<<8;
+            d += processor._reg.e; 
+            h--;
+            if((d&0xf)==0xf){
+                flag += (1<<5)
+            }
+            if(d==0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.d = d>>8;
+            processor._reg.e = d&0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+
+
+        //0x13
+        INC_DE: function(){
+            processor._reg.f = 0; 
+            var d = processor._reg.d<<8;
+            d += processor._reg.e;
+            d++;
+            if((d&0x10)==0x10){
+                processor._reg.f += (1<<5);
+            }
+            d &= 0xffff;
+            if(d==0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.d = d>>8;
+            processor._reg.e = d&0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+
+        //0x1B
+        DEC_DE: function(){
+            processor._reg.f = (1<<6); 
+            var d = processor._reg.d<<8;
+            d += processor._reg.e; 
+            d--;
+            if((d&0xf)==0xf){
+                flag += (1<<5)
+            }
+            if(d==0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.d = d>>8;
+            processor._reg.e = d&0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+
+        //0x23
+        INC_HL: function(){
+            processor._reg.f = 0; 
+            var h = processor._reg.h<<8;
+            h += processor._reg.l;
+            h++;
+            if((h&0x10)==0x10){
+                processor._reg.f += (1<<5);
+            }
+            h &= 0xffff;
+            if(h==0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.h = h>>8;
+            processor._reg.l = h&0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+
+        //0x2B
+        DEC_HL: function(){
+            processor._reg.f = (1<<6); 
+            var h = processor._reg.h<<8;
+            h += processor._reg.l; 
+            h--;
+            if((h&0xf)==0xf){
+                flag += (1<<5)
+            }
+            if(h==0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.h = h>>8;
+            processor._reg.l = h&0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+        /* 
+            algo to check for half-carry:
+            var ob = processor._reg.b;
+            var sum = (ob&0xf) + 1;
+            if(sum&0x10==0x10){
+                processor._reg.f += (1<<5);
+            }
+        */
+        //0x09
+        ADD_HLBC: function(){
+            processor._reg.f = 0;
+            var hl = processor._reg.h<<8;
+            hl+= processor._reg.l;
+            var bc = processor._reg.b<<8;
+            bc+= processor._reg.c;
+            /* check for half-carry */
+            if(((processor._reg.c&0xf)+(processor._reg.l&0xf))&0x10==0x10){
+                processor._reg.f += (1<<5)
+            }
+            /* Check for carry */
+if((hl+bc)&0xff!=(hl+bc)){
+                processor._reg.f += (1<<4)
+            }
+            hl+=bc;
+            processor._reg.h = hl >> 8;
+            processor._reg.l = hl & 0xff;
+            processor._reg.m = 2;
+            processor._reg.t = 8;
+        },
+
+        //0x19
+        ADD_HLDE: function(){
+            processor._reg.f = 0;
+            var hl = processor._reg.h<<8;
+            hl+= processor._reg.l;
+            var de = processor._reg.d<<8;
+            de+= processor._reg.e;
+            if(((processor._reg.e&0xf)+(processor._reg.l&0xf))&0x10==0x10){
+                processor._reg.f += (1<<5)
+            }
+            if((hl+de)&0xff!=(hl+de)){
+                processor._reg.f += (1<<4)
+            }
+            hl+=de;
+            processor._reg.h = hl >> 8;
+            processor._reg.l = hl & 0xff;
+            processor._reg.m = 2;
+            processor._reg.t = 8;
+        },
+
+        //0x29
+        ADD_HLHL: function(){
+            processor._reg.f = 0;
+            var hl = processor._reg.h<<8;
+            hl+= processor._reg.l;
+            if(((processor._reg.l&0xf)+(processor._reg.l&0xf))&0x10==0x10){
+                processor._reg.f += (1<<5)
+            }
+            if((hl+hl)&0xff!=(hl+hl)){
+                processor._reg.f += (1<<4)
+            }
+            hl+=hl;
+            processor._reg.h = hl >> 8;
+            processor._reg.l = hl & 0xff;
+            processor._reg.m = 2;
+            processor._reg.t = 8;
+        },
+
+        //0x39
+        ADD_HLSP: function(){
+            processor._reg.f = 0;
+            var hl = processor._reg.h<<8;
+            hl+= processor._reg.l;
+            var sp=process._reg.sp;
+            if(((sp&0xf)+(processor._reg.l&0xf))&0x10==0x10){
+                processor._reg.f += (1<<5)
+            }
+            if((hl+sp)&0xff!=(hl+sp)){
+                processor._reg.f += (1<<4)
+            }
+            hl+=sp;
+            processor._reg.h = hl >> 8;
+            processor._reg.l = hl & 0xff;
+            processor._reg.m = 2;
+            processor._reg.t = 8;
+        },        
     },
 
     _instMap: [],
@@ -1117,10 +1321,4 @@ processor._instr.NOP,
     ]
     
 }
-
-
-
-
-
-
 
