@@ -848,14 +848,239 @@ processor = {
             8-bit arithmetic sequences
         */
 
-        //0x04
-        INC_B: function(){
-            processor._reg.b++;
-            var b = processor._reg.b;
-            processor._reg.b&=255;
-            /* Make function to set flag based off of calculations*/
+        flags: {
+            
         },
 
+        ADDr_b: function() { 
+                var a=Z80._r.a; 
+                Z80._r.a+=Z80._r.b; 
+                Z80._r.f=(Z80._r.a>255)?0x10:0; 
+                Z80._r.a&=255;  
+                if(!Z80._r.a) Z80._r.f|=0x80;   
+                if((Z80._r.a^Z80._r.b^a)&0x10) Z80._r.f|=0x20;  
+                Z80._r.m=1; 
+         },
+
+        /* 
+            algo to check for half-carry:
+            var ob = processor._reg.b;
+            var sum = (ob&0xf) + 1;
+            if(sum&0x10==0x10){
+                processor._reg.f += (1<<5);
+            }
+        */
+
+        //0x04
+        INC_B: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.b++;
+            /* Register can't exceed 8 bits, if it did, fix it 
+            and set the carry flag! */
+            if(processor._reg.b>255){
+                processor._reg.f += (1<<4);
+            }
+            processor._reg.b&=255;
+            if(processor._reg.b==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x05
+        DEC_B: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.b--;
+
+            processor._reg.b&=255;
+            if(processor._reg.b==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x14
+        INC_D: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.d++;
+            /* Register can't exceed 8 bits, if it did, fix it 
+            and set the carry flag! */
+            if(processor._reg.d>255){
+                processor._reg.f += (1<<4);
+            }
+            processor._reg.d&=255;
+            if(processor._reg.d==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x15
+        DEC_D: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.d--;
+
+            processor._reg.d&=255;
+            if(processor._reg.d==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x24
+        INC_H: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.h++;
+            /* Register can't exceed 8 bits, if it did, fix it 
+            and set the carry flag! */
+            if(processor._reg.h>255){
+                processor._reg.f += (1<<4);
+            }
+            processor._reg.h&=255;
+            if(processor._reg.h==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x25
+        DEC_H: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.h--;
+
+            processor._reg.h&=255;
+            if(processor._reg.h==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x0C
+        INC_C: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.c++;
+            /* Register can't exceed 8 bits, if it did, fix it 
+            and set the carry flag! */
+            if(processor._reg.c>255){
+                processor._reg.f += (1<<4);
+            }
+            processor._reg.c&=255;
+            if(processor._reg.c==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x0D
+        DEC_C: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.c--;
+
+            processor._reg.c&=255;
+            if(processor._reg.c==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x1C
+        INC_E: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.e++;
+            /* Register can't exceed 8 bits, if it did, fix it 
+            and set the carry flag! */
+            if(processor._reg.e>255){
+                processor._reg.f += (1<<4);
+            }
+            processor._reg.e&=255;
+            if(processor._reg.e==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x1D
+        DEC_E: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.e--;
+
+            processor._reg.e&=255;
+            if(processor._reg.e==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+        //0x2C
+        INC_L: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.l++;
+            /* Register can't exceed 8 bits, if it did, fix it 
+            and set the carry flag! */
+            if(processor._reg.l>255){
+                processor._reg.f += (1<<4);
+            }
+            processor._reg.l&=255;
+            if(processor._reg.l==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x2D
+        DEC_L: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.l--;
+
+            processor._reg.l&=255;
+            if(processor._reg.l==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x3C
+        INC_A: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.a++;
+            /* Register can't exceed 8 bits, if it did, fix it 
+            and set the carry flag! */
+            if(processor._reg.a>255){
+                processor._reg.f += (1<<4);
+            }
+            processor._reg.a&=255;
+            if(processor._reg.a==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        //0x3D
+        DEC_A: function(){
+            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.a--;
+
+            processor._reg.a&=255;
+            if(processor._reg.a==0){
+                /* if operation resulted in 0, set 0 flag */
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+        },
+
+        
     },
 
     _instMap: [],
