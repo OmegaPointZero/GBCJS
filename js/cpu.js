@@ -848,20 +848,6 @@ processor = {
             8-bit arithmetic sequences
         */
 
-        flags: {
-            
-        },
-
-        ADDr_b: function() { 
-                var a=Z80._r.a; 
-                Z80._r.a+=Z80._r.b; 
-                Z80._r.f=(Z80._r.a>255)?0x10:0; 
-                Z80._r.a&=255;  
-                if(!Z80._r.a) Z80._r.f|=0x80;   
-                if((Z80._r.a^Z80._r.b^a)&0x10) Z80._r.f|=0x20;  
-                Z80._r.m=1; 
-         },
-
         /* 
             algo to check for half-carry:
             var ob = processor._reg.b;
@@ -892,7 +878,7 @@ processor = {
         DEC_B: function(){
             processor._reg.f = 0; /* reset the flags*/
             processor._reg.b--;
-
+            processor._reg.f += (1<<6)
             processor._reg.b&=255;
             if(processor._reg.b==0){
                 /* if operation resulted in 0, set 0 flag */
@@ -922,7 +908,7 @@ processor = {
         DEC_D: function(){
             processor._reg.f = 0; /* reset the flags*/
             processor._reg.d--;
-
+            processor._reg.f += (1<<6)
             processor._reg.d&=255;
             if(processor._reg.d==0){
                 /* if operation resulted in 0, set 0 flag */
@@ -952,7 +938,7 @@ processor = {
         DEC_H: function(){
             processor._reg.f = 0; /* reset the flags*/
             processor._reg.h--;
-
+            processor._reg.f += (1<<6)
             processor._reg.h&=255;
             if(processor._reg.h==0){
                 /* if operation resulted in 0, set 0 flag */
@@ -982,7 +968,7 @@ processor = {
         DEC_C: function(){
             processor._reg.f = 0; /* reset the flags*/
             processor._reg.c--;
-
+            processor._reg.f += (1<<6)
             processor._reg.c&=255;
             if(processor._reg.c==0){
                 /* if operation resulted in 0, set 0 flag */
@@ -1012,7 +998,7 @@ processor = {
         DEC_E: function(){
             processor._reg.f = 0; /* reset the flags*/
             processor._reg.e--;
-
+            processor._reg.f += (1<<6)
             processor._reg.e&=255;
             if(processor._reg.e==0){
                 /* if operation resulted in 0, set 0 flag */
@@ -1041,7 +1027,7 @@ processor = {
         DEC_L: function(){
             processor._reg.f = 0; /* reset the flags*/
             processor._reg.l--;
-
+            processor._reg.f += (1<<6)
             processor._reg.l&=255;
             if(processor._reg.l==0){
                 /* if operation resulted in 0, set 0 flag */
@@ -1071,7 +1057,7 @@ processor = {
         DEC_A: function(){
             processor._reg.f = 0; /* reset the flags*/
             processor._reg.a--;
-
+            processor._reg.f += (1<<6)
             processor._reg.a&=255;
             if(processor._reg.a==0){
                 /* if operation resulted in 0, set 0 flag */
