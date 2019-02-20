@@ -40,12 +40,16 @@ processor = {
 
     exec: function(){
         //read the instruction in program counter
+        console.log("Executing instruction. Registers:")
+        console.log(processor._reg)
         ins = MM.read(processor._reg.pc);
-        /*
-            Here shall be a function to lookup the function
-            by the OPCODe read and call it
-        */
-        processor._reg.pc++;
+        processor._RegFnMap[ins](function(){
+            /* Anonymous callback to increment the PC only after instruction has finished */
+            processor._reg.pc++;
+        });
+        if(!processor._RegFnMap[ins]){
+            console.log("FATAL! MISSING INSTRUCTION: 0x%s" + (MM.read(processor._reg.pc)).toString(2))
+        }
         processor._clock.m+=processor._reg.m;
         processor._clock.t+=processor._reg.t;
         /*
@@ -649,6 +653,17 @@ processor = {
             processor._reg.t=12;
         },
 
+        //0x08
+        LD_nnSP: function(){
+            processor._reg.pc++;
+            var a = MM.read(processor._reg.pc)<<8;
+            processor._reg.pc++;
+            a += MM.read(processor._reg.pc);
+            MM.write(a,processor._reg.sp);
+            processor._reg.m=5;
+            processor._reg.t=20;
+        },
+
         //0xC1
         POP_BC: function(){
             processor._reg.c = MM.read(processor._reg.sp);
@@ -685,9 +700,6 @@ processor = {
             processor._reg.sp++;
             processor._reg.a = M.read(processor._reg.sp);
             processor._reg.sp++;
-            /*
-                To do: Implement Flags suppport? How does POP trigger the subtraction or carry flags??
-            */
             processor._reg.m=3;
             processor._reg.t=12;            
         },
@@ -877,11 +889,11 @@ processor = {
                 var byte = MM.read(processor._reg.pc)
                 if(byte&(1<<7)==0x80){
                     var o = byte&0x7f;
-                    processor._reg.pc = processor._reg.pc + (-128+o);
+                    processor._reg.pc = processor._reg.pc + (-128+o) -1;
                     processor._reg.m = 3;
                     processor._reg.t = 12;
                 } else if(byte&(1<<7)!=0x80){
-                    processor._reg.pc = processor._reg.pc + byte
+                    processor._reg.pc = processor._reg.pc + byte -1
                     processor._reg.m = 3;
                     processor._reg.t = 12;
                 }
@@ -897,11 +909,11 @@ processor = {
             var byte = MM.read(processor._reg.pc)
             if(byte&(1<<7)==0x80){
                 var o = byte&0x7f;
-                processor._reg.pc = processor._reg.pc + (-128+o);
+                processor._reg.pc = processor._reg.pc + (-128+o)-1;
                 processor._reg.m = 3;
                 processor._reg.t = 12;
             } else if(byte&(1<<7)!=0x80){
-                processor._reg.pc = processor._reg.pc + byte
+                processor._reg.pc = processor._reg.pc + byte-1
                 processor._reg.m = 3;
                 processor._reg.t = 12;
             }
@@ -919,7 +931,7 @@ processor = {
                     processor._reg.m = 3;
                     processor._reg.t = 12;
                 } else if(byte&(1<<7)!=0x80){
-                    processor._reg.pc = processor._reg.pc + byte
+                    processor._reg.pc = processor._reg.pc + byte -1;
                     processor._reg.m = 3;
                     processor._reg.t = 12;
                 }
@@ -957,7 +969,7 @@ processor = {
 
         //0x04
         INC_B: function(){
-            processor._reg.f = 0; /* reset the flags*/
+            processor._reg.f &= 0x10; /* reset the flags, preserve carry flag*/
             processor._reg.b++;
             /*set half carry, not carry! */
             if((processor._reg.b&0x10)==0x10){
@@ -975,7 +987,8 @@ processor = {
 
         //0x05
         DEC_B: function(){
-            processor._reg.f = (1<<6); /* N-flag set */
+            processor._reg.f &= 0x10;
+            processor._reg.f += (1<<6); /* N-flag set */
             processor._reg.b--;
             processor._reg.b&=255;
             /* Set half carry if lower 4 bits went from 0000>1111
@@ -992,7 +1005,7 @@ processor = {
 
         //0x14
         INC_D: function(){
-            processor._reg.f = 0;
+            processor._reg.f &= 0x10;
             processor._reg.d++;
             if((processor._reg.d&0x10)==0x10){
                 processor._reg.f+=(1<<5)
@@ -1006,8 +1019,9 @@ processor = {
 
         //0x15
         DEC_D: function(){
+            processor._reg.f &= 0x10;
             processor._reg.d--;
-            processor._reg.f = (1<<6)
+            processor._reg.f += (1<<6)
             processor._reg.d&=255;
             if((processor._reg.d&0xf)==0xf){
                 processor._reg.f += (1<<5)
@@ -1020,7 +1034,7 @@ processor = {
 
         //0x24
         INC_H: function(){
-            processor._reg.f = 0; 
+            processor._reg.f &= 0x10;
             processor._reg.h++;
             if((processor._reg.h&0x10)==0x10){
                 processor._reg.f+=(1<<5)
@@ -1034,8 +1048,9 @@ processor = {
 
         //0x25
         DEC_H: function(){
+            processor._reg.f &= 0x10;
             processor._reg.h--;
-            processor._reg.f = (1<<6)
+            processor._reg.f += (1<<6)
             processor._reg.h&=255;
             if((processor._reg.h&0xf)==0xf){
                 processor._reg.f += (1<<5)
@@ -1048,7 +1063,7 @@ processor = {
 
         //0x34
         INC_aHL: function(){
-            processor._reg.f = 0; 
+            processor._reg.f &= 0x10;
             var hl = processor._reg.h<<8;
             hl += processor._reg.l;
             var h = MM.read(hl);
@@ -1067,7 +1082,8 @@ processor = {
 
         //0x35
         DEC_aHL: function(){
-            processor._reg.f = (1<<6); 
+            processor._reg.f &= 0x10;
+            processor._reg.f += (1<<6); 
             var h = processor._reg.h<<8;
             h += processor._reg.l; 
             h--;
@@ -1083,7 +1099,7 @@ processor = {
 
         //0x0C
         INC_C: function(){
-            processor._reg.f = 0; 
+            processor._reg.f &= 0x10;
             processor._reg.c++;
             if((processor._reg.c&0x10)==0x10){
                 processor._reg.f+=(1<<5)
@@ -1097,8 +1113,9 @@ processor = {
 
         //0x0D
         DEC_C: function(){
+            processor._reg.f &= 0x10;
             processor._reg.c--;
-            processor._reg.f = (1<<6);
+            processor._reg.f += (1<<6);
             processor._reg.c&=255;
             if((processor._reg.c&0xf)==0xf){
                 processor._reg.f += (1<<5);
@@ -1111,7 +1128,7 @@ processor = {
 
         //0x1C
         INC_E: function(){
-            processor._reg.f = 0; 
+            processor._reg.f &= 0x10;
             processor._reg.e++;
             if((processor._reg.e&0x10)==0x10){
                 processor._reg.f+=(1<<5)
@@ -1125,6 +1142,7 @@ processor = {
 
         //0x1D
         DEC_E: function(){
+            processor._reg.f &= 0x10;
             processor._reg.e--;
             processor._reg.f += (1<<6)
             processor._reg.e&=255;
@@ -1138,7 +1156,7 @@ processor = {
         },
         //0x2C
         INC_L: function(){
-            processor._reg.f = 0; 
+            processor._reg.f &= 0x10;
             processor._reg.l++;
             if((processor._reg.l&0x10)==0x10){
                 processor._reg.f+=(1<<5)
@@ -1153,6 +1171,7 @@ processor = {
         //0x2D
         DEC_L: function(){
             processor._reg.l--;
+            processor._reg.f &= 0x10;
             processor._reg.f += (1<<6)
             processor._reg.l&=255;
             if((processor._reg.l&0xf)==0xf){
@@ -1167,7 +1186,7 @@ processor = {
 
         //0x3C
         INC_A: function(){
-            processor._reg.f = 0; 
+            processor._reg.f &= 0x10;
             processor._reg.a++;
             if((processor._reg.a&0x10)==0x10){
                 processor._reg.f+=(1<<5)
@@ -1181,8 +1200,9 @@ processor = {
 
         //0x3D
         DEC_A: function(){
+            processor._reg.f &= 0x10;
             processor._reg.a--;
-            processor._reg.f = (1<<6);
+            processor._reg.f += (1<<6);
             processor._reg.a&=255;
             if((processor._reg.a&0xf)==0xf){
                 processor._reg.f += (1<<5)
@@ -1197,12 +1217,10 @@ processor = {
 
         /* 
             16-bit arithmetic instructions
-
         */
 
         //0x03
         INC_BC: function(){
-            processor._reg.f = 0; 
             var b = processor._reg.b<<8;
             b += processor._reg.c;
             b++;
@@ -1424,7 +1442,6 @@ if((hl+bc)&0xff!=(hl+bc)){
                 Weird instruction, not very well documented. Corrects/prepares the A register for BCD instructions. 
 
                 Exact process is apparently the following: take the least significant 4 bits of A. If the H flag is set or if the number is over 9, 0x6 is added to the register. The A register's 4 most significant bits get checked, If THIS digit is over 9 or the C flag is set, then 0x60 is added to the register. 
-
             */
 
             var h = (processor._reg.a>>4)&0xf;
@@ -1478,8 +1495,8 @@ if((hl+bc)&0xff!=(hl+bc)){
         
     },
 
-    _instMap: [],
-    _cbInstMap: [],
+    _RegFnMap: [],
+    _cbFnMap: [],
 
     _instMap = [
         // 0x00
@@ -1498,4 +1515,6 @@ processor._instr.NOP,
     ]
     
 }
+
+modules.export = processor;
 

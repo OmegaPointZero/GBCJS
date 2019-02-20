@@ -12,7 +12,7 @@ No real work done, but at least a <canvas> has been drawn to give the future GPU
 -MM: may need to re-handle writing multiple bytes (ie, to hl)
 -8 and 16 bit arithmetic
 -Flags support has been implemented; however, default is to overwrite flags register to 0x00 and then write; NEED TO PRESERVE REGISTER
--For conditional jumps, need to figure out how to run exec() without incrementing pc unnecessarily (jump to pc-1, so exec() runs pc++ to correct instruction?)
+
 
 3. Memory Mapping minimal but working for first draft. Reading and Writing may need to be refactored to correctly handle multiple bytes properly.
 

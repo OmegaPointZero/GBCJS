@@ -29,12 +29,18 @@ MM = {
         for(i=0;i<0xffff;i++){
             MM._memory[i]=0
         }
-    }
+    },
+
+    load: function(game){
+        console.log("Loading game!");
+        MM._cartridge = game
+        MM.reset();
+    },
 
     reset: function(){
         MM.init();
         MM._booting = 1;
-    }
+    },
 
     //long_addr: return value of 2 registers
     l_addr: function(first, second){
@@ -65,3 +71,4 @@ MM = {
     }
 }
 
+module.exports = MM;
