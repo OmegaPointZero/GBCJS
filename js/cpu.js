@@ -38,6 +38,15 @@ processor = {
     _stop: 0,
     _clock: {m:0, t:0},
 
+    init: function(){
+        console.log("Initializing CPU...")
+        processor._reg = { a:0, f:0, b:0, c:0, d:0, e:0, h:0,l:0, sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
+        processor._halt = 0;
+        processor._stop = 0;
+        processor._clock = {m:0, t:0}
+        exec();
+    },
+
     exec: function(){
         //read the instruction in program counter
         console.log("Executing instruction. Registers:")
@@ -407,21 +416,21 @@ processor = {
         //   Other 8-bit load/move/store instructions
         
         //0x02
-        LD_aBC_a: function(){
+        LD_aBC_A: function(){
             MM.write(l_addr(processor._reg.b,processor._reg.c),processor._reg.a);
             processor._reg.m=2;
             processor._reg.t=8;
         },
         
         //0x12
-        LD_aDE_a: function(){
+        LD_aDE_A: function(){
             MM.write(l_addr(processor._reg.d,processor._reg.e),processor._reg.a);
             processor._reg.m=2;
             processor._reg.t=8;
         },
 
         //0x22
-        LD_aHLi_a: function(){
+        LD_aHLi_A: function(){
             var hl = l_addr(processor._reg.h,processor._reg.l);
             MM.write(hl,processor._reg.a);
             hl += 1;
@@ -432,7 +441,7 @@ processor = {
         },
 
         //0x32
-        LD_aHLd_a: function(){
+        LD_aHLd_A: function(){
             var hl = l_addr(processor._reg.h,processor._reg.l);
             MM.write(hl,processor._reg.a);
             hl -= 1;
@@ -607,8 +616,131 @@ processor = {
             processor._reg.t=16;
         },
 
-        //  !!! END OF 8-BIT MOVE/LOAD/STORE INSTRUCTIONS !!!
+        //0x46
+        LD_BaHL: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            processor._reg.b = MM.read(hl)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
 
+        //0x56
+        LD_DaHL: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            processor._reg.d = MM.read(hl)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x66
+        LD_HaHL: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            processor._reg.h = MM.read(hl)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x4E
+        LD_CaHL: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            processor._reg.c = MM.read(hl)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x5E
+        LD_EaHL: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            processor._reg.e = MM.read(hl)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x6E
+        LD_LaHL: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            processor._reg.l = MM.read(hl)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x7E
+        LD_AaHL: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            processor._reg.a = MM.read(hl)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x70
+        LD_aHLB: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            MM.write(MM.read(hl),processor._reg.b)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x71
+        LD_aHLC: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            MM.write(MM.read(hl),processor._reg.c)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x72
+        LD_aHLD: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            MM.write(MM.read(hl),processor._reg.d)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x73
+        LD_aHLE: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            MM.write(MM.read(hl),processor._reg.e)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x74
+        LD_aHLH: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            MM.write(MM.read(hl),processor._reg.h)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x75
+        LD_aHLL: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            MM.write(MM.read(hl),processor._reg.l)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
+
+        //0x77
+        LD_aHLA: function(){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            MM.write(MM.read(hl),processor._reg.a)
+            processor._reg.m=2;
+            processor._reg.t=8;
+        },
         /*
             16-BIT MOVE/LOAD/STORE INSTRUCTIONS
         */
@@ -742,18 +874,6 @@ processor = {
             MM.write(processor._reg.sp,processor._reg.f);
             processor._reg.m=4;
             processor._reg.t=16;            
-        },
-
-        //0x08
-        LD_nnSP: function(){
-            processor._reg.pc++;
-            var a = MM.read(processor._reg.pc);
-            processor._reg.pc++;
-            var b = MM.read(processor._reg.pc);
-            var ba = b+a;                    
-            MM.write(ba,processor._reg.sp);
-            processor._reg.m=5;
-            processor._reg.t=20;            
         },
 
         //0xF8
@@ -1491,9 +1611,85 @@ if((hl+bc)&0xff!=(hl+bc)){
             processor._reg.f += (1<<4);
             processor._reg.m = 1;
             processor._reg.t = 4;
-        }
+        },
+
+        /*
+            8-bit rotation/shift bit instructions
+        */
+
+        //0x17
+        RLA: function() { 
+            /* 
+                if 0001 0000 is set on a, set that to flags register, otherwise
+                clear the flags register
+            */
+            processor._reg.a&0x10?processor._reg.f=0x10:processor._reg.f=0;
+            /* Shift a register left 1 bit, add 1 if carry flag is set */
+            if(processor._reg.f==0x10){
+                processor._reg.a = (processor._reg.a<<1) + 1;
+            } else {
+                processor._reg.a = (processor._reg.a<<1);
+            }
+            processor._reg.a &= 255;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+
+        },
+        //0x07
+        RLCA: function() { 
+            /* 
+                if a's highest bit is set, set flags to 0001 0000 AND shift left 
+                1 bit adding 1, or clear it and shift left 1 bit
+            */
+            if(processor._reg.a&0x80){
+                processor._reg.f = 0x10;
+                processor._reg.a = processor._reg.a<<1 + 1                
+            } else {
+                processor._reg.f = 0;
+                processor._reg.a = processor._reg.a<<1;
+            }
+            processor._reg.a &= 255;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+        //0x1F
+        RRA: function() { 
+            /* 
+                if lowest bit of a is set, set the carry flag
+                shift a reg right 1 byte, add 0x80 if the carry flag is set
+             */
+            if(processor._reg.a&1){
+                processor._reg.f = 0x10;
+                processor._reg.a = processor._reg.a>>1 + 0x80;
+            } else {
+                processor._reg.f = 0;
+                processor._reg.a = processor._reg.a>>1;
+            }
+            processor._reg.a &= 255;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+        },
+        //0x0F
+        RRCA: function() { 
+            if(processor._reg.a&1){
+                processor._reg.a = processor._reg.a>>1+0x80;
+                processor._reg.f = 0x10;
+            } else {
+                processor._reg.a = processor._reg.a>>1;
+                processor._reg.f = 0;
+            }
+
+            processor._reg.a &= 255;
+            processor._reg.m = 1;
+            processor._reg.t = 4; 
+        },
+
         
     },
+
+
+
+
 
     _RegFnMap: [],
     _cbFnMap: [],
@@ -1501,20 +1697,150 @@ if((hl+bc)&0xff!=(hl+bc)){
     _instMap = [
         // 0x00
         processor._instr.NOP,
-        processor._instr.,
-processor._instr.,
-processor._instr.,
-processor._instr.NOP,
-processor._instr.NOP,
-processor._instr.NOP,
-processor._instr.NOP,
-processor._instr.NOP,
-processor._instr.NOP, 
+        processor._instr.LD_BCnn,
+        processor._instr.LD_aBC_A,
+        processor._instr.INC_BC,
+        processor._instr.INC_B,
+        processor._instr.DEC_B,
+        processor._instr.LD_Bd8,
+        processor._instr.RLCA,
+        processor._instr.LD_nnSP,
+        processor._instr.ADD_HLBC, 
+        processor._instr.LD_AaBC,
+        processor._instr.DEC_BC,
+        processor._instr.INC_C,
+        processor._instr.DEC_C,
+        processor._instr.LD_Cd8,
+        processor._instr.RRCA,
 
-        //0x0A
+        //0x10
+        processor._instr.STOP,
+        processor._instr.LD_DEnn,
+        processor._instr.LD_aDE_A,
+        processor._instr.INC_DE,
+        processor._instr.INC_D,
+        processor._instr.DEC_D,
+        processor._instr.LD_Dd8,
+        processor._instr.RLA,
+        processor._instr.JRn,
+        processor._instr.ADD_HLDE, 
+        processor._instr.LD_AaDE,
+        processor._instr.DEC_DE,
+        processor._instr.INC_E,
+        processor._instr.DEC_E,
+        processor._instr.LD_Ed8,
+        processor._instr.RRA,
+
+        //0x20
+        processor._instr.JRNZn,
+        processor._instr.LD_HLnn,
+        processor._instr.LD_aHLi_A,
+        processor._instr.INC_HL,
+        processor._instr.INC_H,
+        processor._instr.DEC_H,
+        processor._instr.LD_Hd8,
+        processor._instr.DAA,
+        processor._instr.JRZn,
+        processor._instr.ADD_HLHL, 
+        processor._instr.LD_AaHLi,
+        processor._instr.DEC_HL,
+        processor._instr.INC_L,
+        processor._instr.DEC_L,
+        processor._instr.LD_Ld8,
+        processor._instr.CPL,
+
+        //0x30
+        processor._instr.JRNCn,
+        processor._instr.LD_SPnn,
+        processor._instr.LD_aHLd_A,
+        processor._instr.INC_SP,
+        processor._instr.INC_aHL,
+        processor._instr.DEC_aHL,
+        processor._instr.LD_aHLd8,
+        processor._instr.SCF,
+        processor._instr.JRCn,
+        processor._instr.ADD_HLSP, 
+        processor._instr.LD_AaHLd,
+        processor._instr.DEC_SP,
+        processor._instr.INC_A,
+        processor._instr.DEC_A,
+        processor._instr.LD_Ad8,
+        processor._instr.CCF,
+
+        //0x40
+        processor._instr.LD_bb,
+        processor._instr.LD_bc,
+        processor._instr.LD_bd,
+        processor._instr.LD_be,
+        processor._instr.LD_bh,
+        processor._instr.LD_bl,
+        processor._instr.LD_BaHL,
+        processor._instr.LD_ba,
+        processor._instr.LD_cb,
+        processor._instr.LD_cc,
+        processor._instr.LD_cd,
+        processor._instr.LD_ce,
+        processor._instr.LD_ch,
+        processor._instr.LD_cl,
+        processor._instr.LD_CaHL,
+        processor._instr.LD_ca,
+
+        //0x50
+        processor._instr.LD_db,
+        processor._instr.LD_dc,
+        processor._instr.LD_dd,
+        processor._instr.LD_de,
+        processor._instr.LD_dh,
+        processor._instr.LD_dl,
+        processor._instr.LD_DaHL,
+        processor._instr.LD_da,
+        processor._instr.LD_eb,
+        processor._instr.LD_ec,
+        processor._instr.LD_ed,
+        processor._instr.LD_ee,
+        processor._instr.LD_eh,
+        processor._instr.LD_el,
+        processor._instr.LD_EaHL,
+        processor._instr.LD_ea,
+
+        //0x60
+        processor._instr.LD_hb,
+        processor._instr.LD_hc,
+        processor._instr.LD_hd,
+        processor._instr.LD_he,
+        processor._instr.LD_hh,
+        processor._instr.LD_hl,
+        processor._instr.LD_HaHL,
+        processor._instr.LD_ha,
+        processor._instr.LD_lb,
+        processor._instr.LD_lc,
+        processor._instr.LD_ld,
+        processor._instr.LD_le,
+        processor._instr.LD_lh,
+        processor._instr.LD_ll,
+        processor._instr.LD_LaHL,
+        processor._instr.LD_la,
+
+        //0x70
+        processor._instr.LD_aHLB,
+        processor._instr.LD_aHLC,
+        processor._instr.LD_aHLD,
+        processor._instr.LD_aHLE,
+        processor._instr.LD_aHLH,
+        processor._instr.LD_aHLL,
+        processor._instr.HALT,
+        processor._instr.LD_aHLA,
+        processor._instr.LD_ab,
+        processor._instr.LD_ac,
+        processor._instr.LD_ad,
+        processor._instr.LD_ae,
+        processor._instr.LD_ah,
+        processor._instr.LD_al,
+        processor._instr.LD_AaHL,
+        processor._instr.LD_aa,
+
     ]
     
 }
 
-modules.export = processor;
-
+module.export = processor;

@@ -1,3 +1,5 @@
+import './mm.js'
+
 $('document').ready(function(){
 
    const take_byte = (function(byte){
@@ -11,7 +13,8 @@ $('document').ready(function(){
         console.log(myFile)
         const fr = new FileReader();
         fr.onload = function(){
-            MM.load(fr)
+            var game = new Uint8Array(fr.result)
+            MM.load(game);
         }
 
         fr.readAsArrayBuffer(myFile)
