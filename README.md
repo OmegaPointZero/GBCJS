@@ -1,15 +1,11 @@
 # GBCJS
 GameBoy Color JS, my first attempt at emulating a GBC, built on Javascript with JQuery for the UI. 
 
-1. UI
-No real work done, but at least a <canvas> has been drawn to give the future GPU something to interact with. I supposed I should actually draw the gameboy soon, as UI stuff is simple.
+1. UI: Gameboy basic structure drawn
 
-2. CPU Virtualization
-CPU running, begins executing the first instruction (LD SP, 0xfffe) to initialize the stack. However, it's not quite working properly. 
+2. CPU Virtualization: CPU running, begins executing the first instruction (LD SP, 0xfffe) to initialize the stack. However, it's not quite working properly. 
 
-
-
-3. Memory Mapping minimal but working for first draft. Reading and Writing may need to be refactored to correctly handle multiple bytes properly.
+3. Memory Mapping improved a bit, appears to work but as the CPU currently crashes running the first instruction (but at least has loaded the ROM and read the instruction, as well as the function that instruction represents!)
 
 4. GPU
 -Not yet implemented, interrupts need to be further studied and timing needs to be implemented for the GPU.
