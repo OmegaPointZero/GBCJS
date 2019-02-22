@@ -725,12 +725,15 @@ instr = {
         },
            
         //0x31
-        LD_SPnn: function(){
-            MM.write(processor._reg.c,processor._reg.pc+1);
-            MM.write(processor._reg.b,processor._reg.pc+2);
-            processor._reg.pc+=2;
+        LD_SPnn: function(callback){
+            processor._reg.pc++;
+            processor._reg.c=processor._reg.pc;
+            processor._reg.pc++;
+            processor._reg.b=processor._reg.pc;
             processor._reg.m=3;
             processor._reg.t=12;
+            console.log(processor._reg)
+            callback()
         },
 
         //0x08
@@ -1829,8 +1832,10 @@ processor = {
             console.log("FATAL! MISSING INSTRUCTION: 0x" + (MM.read(processor._reg.pc)).toString(16))
             processor.ohShit = 1;
         } else {
-            console.log("tryna call "+ins)
-            RegFnMap[ins]();
+            RegFnMap[ins](function(){
+                console.log("Hit the callback!")
+                processor.exec()
+            });
         }
         processor._clock.m+=processor._reg.m;
         processor._clock.t+=processor._reg.t;

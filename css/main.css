@@ -1,0 +1,28 @@
+.main-body{
+    width: 78mm;
+    height: 138.5mm;
+    background-color: green;
+    border-radius: 3%;
+    padding-left: 4px;
+    padding-top: 6px;
+}
+
+.screenHolder{
+    background-color: black;
+    width: 60mm;
+    height: 50mm;
+    padding-left:61px;
+    padding-top: 10px;
+    border-radius: 3%;
+}
+
+canvas#screen{
+    border-color: black;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 2%;
+    background-color: #00bb00;
+    width: 44mm;
+    height: 40mm;
+    margin: auto;
+}

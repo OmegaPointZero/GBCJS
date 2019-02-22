@@ -1,5 +1,6 @@
 <head>
   <title>GBCJS - The JavaScript GameBoy Color Emulator</title>
+  <link rel="stylesheet" type="text/css" href="css/main.css">
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script> <!-- load jQuery -->
  <script src="js/main.js"></script> <!-- load main.js -->
  <script src="js/mm.js"></script> <!-- load main.js -->
@@ -11,7 +12,9 @@
     <input type="file" id="ROMUpload" />
   </div>
   <div class="main-body">
+    <div class="screenHolder">
     <canvas id="screen" width="160" height="144"></canvas>
+    </div>
   </div>
   <div class="debuggingInfo">
     Debugging info goes here
