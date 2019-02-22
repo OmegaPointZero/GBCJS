@@ -727,12 +727,11 @@ instr = {
         //0x31
         LD_SPnn: function(callback){
             processor._reg.pc++;
-            processor._reg.c=processor._reg.pc;
+            processor._reg.c=MM.read(processor._reg.pc);
             processor._reg.pc++;
-            processor._reg.b=processor._reg.pc;
+            processor._reg.b=MM.read(processor._reg.pc);
             processor._reg.m=3;
             processor._reg.t=12;
-            console.log(processor._reg)
             callback()
         },
 
@@ -1816,7 +1815,9 @@ processor = {
 
     ohShit: 0,
 
+    /* Maybe check should increment the pc register?*/
     check: function(){
+        processor._reg.pc++;
         if(processor.ohShit==1){
             console.log("Ohshit button activated! ABORTING!")
         } else {
@@ -1834,7 +1835,7 @@ processor = {
         } else {
             RegFnMap[ins](function(){
                 console.log("Hit the callback!")
-                processor.exec()
+                processor.check()
             });
         }
         processor._clock.m+=processor._reg.m;
