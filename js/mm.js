@@ -1,7 +1,5 @@
 // Memory Mapper
 
-import './cpu.js'
-
 MM = {
     /*
     _memory map:
@@ -83,11 +81,13 @@ MM = {
 
 //    write value to address
     write: function(addr,value){
-        var v = value.split('');
+        val = value.toString()
+        console.log("Write function called!\nWriting "+value+" to "+addr)
+        console.log(typeof(value))
+        var v = val.split('');
         for(var k=0;k<v.length;k++){
             MM._memory[addr+k]=v[k]
         }
     }
 }
 
-module.exports = MM;

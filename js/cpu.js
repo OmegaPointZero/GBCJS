@@ -12,62 +12,11 @@
     it up and calls the function to emulate that register change.
 
     Opcodes functions are not written in order, I wrote them based off of
-    the color coding @http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
-    
+    the color coding @http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html   
 
 */
 
-processor = {
-    
-
-    //  Single byte registers are a, b, c, d, e, h, l    
-    //  Registers may also be used as 16-bit registers:
-    //  AF, BC, DE, HL
-    //  sp: stack pointer, pc: program counter
-    //  t: time, m: machine time, f: flags
-    //  i: interrupts flag, ime: interrupt master enable
-    //  Flags:   Zero (Z), Subtract (N), Half-Carry(H),
-    //           Carry (C)
-    //           7 6 5 4 3 2 1 0
-    //           Z N H C 0 0 0 0
-
-    _reg: { a:0, f:0, b:0, c:0, d:0, e:0, h:0, l:0,
-        sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
-
-    _halt: 0,
-    _stop: 0,
-    _clock: {m:0, t:0},
-
-    init: function(){
-        console.log("Initializing CPU...")
-        processor._reg = { a:0, f:0, b:0, c:0, d:0, e:0, h:0,l:0, sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
-        processor._halt = 0;
-        processor._stop = 0;
-        processor._clock = {m:0, t:0}
-        exec();
-    },
-
-    exec: function(){
-        //read the instruction in program counter
-        console.log("Executing instruction. Registers:")
-        console.log(processor._reg)
-        ins = MM.read(processor._reg.pc);
-        processor._RegFnMap[ins](function(){
-            /* Anonymous callback to increment the PC only after instruction has finished */
-            processor._reg.pc++;
-        });
-        if(!processor._RegFnMap[ins]){
-            console.log("FATAL! MISSING INSTRUCTION: 0x%s" + (MM.read(processor._reg.pc)).toString(2))
-        }
-        processor._clock.m+=processor._reg.m;
-        processor._clock.t+=processor._reg.t;
-        /*
-            Check for interrupts, do GPU stuff?
-            Still need to work out how timing works
-        */
-    }
-
-    _instr: {
+instr = {
 
         // SPECIAL INSTRUCTIONS
         
@@ -102,14 +51,14 @@ processor = {
             processor._reg.m = 1;
             processor._reg.t = 4;
         },
-
         CB: function() {
-        /* 
-            here shall go a function to find 
-            the CB-prefixed instructions
-        */
+           /* Read next byte to lookup CB function in that table */
+            processor._reg.pc++;
+            /* 
+                here shall go a function to find 
+                the CB-prefixed instructions
+            */
         },
-
         // 8-bit Load/Move/Store instructions
 
         //0x7F
@@ -190,7 +139,7 @@ processor = {
             processor._reg.b = processor._reg.h;
             processor._reg.m = 1;
             processor._reg.t = 4;
-        }
+        },
         //0x45
         LD_bl: function() {
             processor._reg.b = processor._reg.l;
@@ -227,7 +176,7 @@ processor = {
             processor._reg.c = processor._reg.e;
             processor._reg.m = 1;
             processor._reg.t = 4;
-        }
+        },
         //0x4C
         LD_ch: function() {
             processor._reg.c = processor._reg.h;
@@ -876,12 +825,24 @@ processor = {
             processor._reg.t=16;            
         },
 
+        /* Take SIGNED 8-bit immediate to SP, and save it in HL */
         //0xF8
         LDHL_SPd8: function(){
-            var s = processor._reg.sp  
-            processor._reg.pc++;
-            s += MM.read(processor._reg.pc++);
-            s.write(
+            processor._reg.pc++
+            var b = (MM.read(processor._reg.pc))<<8;
+            /* Interpret byte as signed 8-bit*/
+            /* s: signed; m:masked b*/
+            var s = b&0x80;
+            var m = b&0x7F;
+            var sp = processor._reg.sp;
+            /* if the byte isn't signed, sp+*/
+            if(s==0){
+                sp += m;
+            } else if (s==128){
+                sp = (sp-128)+m;
+            }
+            processor._reg.h = sp>>8;
+            processor._reg.l = sp&0xff;
             processor._reg.m=3;
             processor._reg.t=12;            
         },
@@ -1568,10 +1529,10 @@ if((hl+bc)&0xff!=(hl+bc)){
             var l = processor._reg.a&0xf;
             var hf = processor._reg.f&(1<<5);
             var cf = processor._reg.f&(1<<4);
-            if((l>9)||(hf==32){
+            if((l>9)||(hf==32)){
                 processor._reg.a+=0x6;
             }  
-            if((h>0)||(cf==16){
+            if((h>0)||(cf==16)){
                 processor._reg.a+=0x60;
             }
 
@@ -1683,164 +1644,199 @@ if((hl+bc)&0xff!=(hl+bc)){
             processor._reg.m = 1;
             processor._reg.t = 4; 
         },
-
-        
-    },
-
-
-
-
-
-    _RegFnMap: [],
-    _cbFnMap: [],
-
-    _instMap = [
-        // 0x00
-        processor._instr.NOP,
-        processor._instr.LD_BCnn,
-        processor._instr.LD_aBC_A,
-        processor._instr.INC_BC,
-        processor._instr.INC_B,
-        processor._instr.DEC_B,
-        processor._instr.LD_Bd8,
-        processor._instr.RLCA,
-        processor._instr.LD_nnSP,
-        processor._instr.ADD_HLBC, 
-        processor._instr.LD_AaBC,
-        processor._instr.DEC_BC,
-        processor._instr.INC_C,
-        processor._instr.DEC_C,
-        processor._instr.LD_Cd8,
-        processor._instr.RRCA,
-
-        //0x10
-        processor._instr.STOP,
-        processor._instr.LD_DEnn,
-        processor._instr.LD_aDE_A,
-        processor._instr.INC_DE,
-        processor._instr.INC_D,
-        processor._instr.DEC_D,
-        processor._instr.LD_Dd8,
-        processor._instr.RLA,
-        processor._instr.JRn,
-        processor._instr.ADD_HLDE, 
-        processor._instr.LD_AaDE,
-        processor._instr.DEC_DE,
-        processor._instr.INC_E,
-        processor._instr.DEC_E,
-        processor._instr.LD_Ed8,
-        processor._instr.RRA,
-
-        //0x20
-        processor._instr.JRNZn,
-        processor._instr.LD_HLnn,
-        processor._instr.LD_aHLi_A,
-        processor._instr.INC_HL,
-        processor._instr.INC_H,
-        processor._instr.DEC_H,
-        processor._instr.LD_Hd8,
-        processor._instr.DAA,
-        processor._instr.JRZn,
-        processor._instr.ADD_HLHL, 
-        processor._instr.LD_AaHLi,
-        processor._instr.DEC_HL,
-        processor._instr.INC_L,
-        processor._instr.DEC_L,
-        processor._instr.LD_Ld8,
-        processor._instr.CPL,
-
-        //0x30
-        processor._instr.JRNCn,
-        processor._instr.LD_SPnn,
-        processor._instr.LD_aHLd_A,
-        processor._instr.INC_SP,
-        processor._instr.INC_aHL,
-        processor._instr.DEC_aHL,
-        processor._instr.LD_aHLd8,
-        processor._instr.SCF,
-        processor._instr.JRCn,
-        processor._instr.ADD_HLSP, 
-        processor._instr.LD_AaHLd,
-        processor._instr.DEC_SP,
-        processor._instr.INC_A,
-        processor._instr.DEC_A,
-        processor._instr.LD_Ad8,
-        processor._instr.CCF,
-
-        //0x40
-        processor._instr.LD_bb,
-        processor._instr.LD_bc,
-        processor._instr.LD_bd,
-        processor._instr.LD_be,
-        processor._instr.LD_bh,
-        processor._instr.LD_bl,
-        processor._instr.LD_BaHL,
-        processor._instr.LD_ba,
-        processor._instr.LD_cb,
-        processor._instr.LD_cc,
-        processor._instr.LD_cd,
-        processor._instr.LD_ce,
-        processor._instr.LD_ch,
-        processor._instr.LD_cl,
-        processor._instr.LD_CaHL,
-        processor._instr.LD_ca,
-
-        //0x50
-        processor._instr.LD_db,
-        processor._instr.LD_dc,
-        processor._instr.LD_dd,
-        processor._instr.LD_de,
-        processor._instr.LD_dh,
-        processor._instr.LD_dl,
-        processor._instr.LD_DaHL,
-        processor._instr.LD_da,
-        processor._instr.LD_eb,
-        processor._instr.LD_ec,
-        processor._instr.LD_ed,
-        processor._instr.LD_ee,
-        processor._instr.LD_eh,
-        processor._instr.LD_el,
-        processor._instr.LD_EaHL,
-        processor._instr.LD_ea,
-
-        //0x60
-        processor._instr.LD_hb,
-        processor._instr.LD_hc,
-        processor._instr.LD_hd,
-        processor._instr.LD_he,
-        processor._instr.LD_hh,
-        processor._instr.LD_hl,
-        processor._instr.LD_HaHL,
-        processor._instr.LD_ha,
-        processor._instr.LD_lb,
-        processor._instr.LD_lc,
-        processor._instr.LD_ld,
-        processor._instr.LD_le,
-        processor._instr.LD_lh,
-        processor._instr.LD_ll,
-        processor._instr.LD_LaHL,
-        processor._instr.LD_la,
-
-        //0x70
-        processor._instr.LD_aHLB,
-        processor._instr.LD_aHLC,
-        processor._instr.LD_aHLD,
-        processor._instr.LD_aHLE,
-        processor._instr.LD_aHLH,
-        processor._instr.LD_aHLL,
-        processor._instr.HALT,
-        processor._instr.LD_aHLA,
-        processor._instr.LD_ab,
-        processor._instr.LD_ac,
-        processor._instr.LD_ad,
-        processor._instr.LD_ae,
-        processor._instr.LD_ah,
-        processor._instr.LD_al,
-        processor._instr.LD_AaHL,
-        processor._instr.LD_aa,
-
-    ]
-    
 }
 
-module.export = processor;
+
+RegFnMap = [
+    // 0x00
+    instr.NOP,
+    instr.LD_BCnn,
+    instr.LD_aBC_A,
+    instr.INC_BC,
+    instr.INC_B,
+    instr.DEC_B,
+    instr.LD_Bd8,
+    instr.RLCA,
+    instr.LD_nnSP,
+    instr.ADD_HLBC, 
+    instr.LD_AaBC,
+    instr.DEC_BC,
+    instr.INC_C,
+    instr.DEC_C,
+    instr.LD_Cd8,
+    instr.RRCA,
+
+    //0x10
+    instr.STOP,
+    instr.LD_DEnn,
+    instr.LD_aDE_A,
+    instr.INC_DE,
+    instr.INC_D,
+    instr.DEC_D,
+    instr.LD_Dd8,
+    instr.RLA,
+    instr.JRn,
+    instr.ADD_HLDE, 
+    instr.LD_AaDE,
+    instr.DEC_DE,
+    instr.INC_E,
+    instr.DEC_E,
+    instr.LD_Ed8,
+    instr.RRA,
+
+    //0x20
+    instr.JRNZn,
+    instr.LD_HLnn,
+    instr.LD_aHLi_A,
+    instr.INC_HL,
+    instr.INC_H,
+    instr.DEC_H,
+    instr.LD_Hd8,
+    instr.DAA,
+    instr.JRZn,
+    instr.ADD_HLHL, 
+    instr.LD_AaHLi,
+    instr.DEC_HL,
+    instr.INC_L,
+    instr.DEC_L,
+    instr.LD_Ld8,
+    instr.CPL,
+
+    //0x30
+    instr.JRNCn,
+    instr.LD_SPnn,
+    instr.LD_aHLd_A,
+    instr.INC_SP,
+    instr.INC_aHL,
+    instr.DEC_aHL,
+    instr.LD_aHLd8,
+    instr.SCF,
+    instr.JRCn,
+    instr.ADD_HLSP, 
+    instr.LD_AaHLd,
+    instr.DEC_SP,
+    instr.INC_A,
+    instr.DEC_A,
+    instr.LD_Ad8,
+    instr.CCF,
+
+    //0x40
+    instr.LD_bb,
+    instr.LD_bc,
+    instr.LD_bd,
+    instr.LD_be,
+    instr.LD_bh,
+    instr.LD_bl,
+    instr.LD_BaHL,
+    instr.LD_ba,
+    instr.LD_cb,
+    instr.LD_cc,
+    instr.LD_cd,
+    instr.LD_ce,
+    instr.LD_ch,
+    instr.LD_cl,
+    instr.LD_CaHL,
+    instr.LD_ca,
+
+    //0x50
+    instr.LD_db,
+    instr.LD_dc,
+    instr.LD_dd,
+    instr.LD_de,
+    instr.LD_dh,
+    instr.LD_dl,
+    instr.LD_DaHL,
+    instr.LD_da,
+    instr.LD_eb,
+    instr.LD_ec,
+    instr.LD_ed,
+    instr.LD_ee,
+    instr.LD_eh,
+    instr.LD_el,
+    instr.LD_EaHL,
+    instr.LD_ea,
+
+    //0x60
+    instr.LD_hb,
+    instr.LD_hc,
+    instr.LD_hd,
+    instr.LD_he,
+    instr.LD_hh,
+    instr.LD_hl,
+    instr.LD_HaHL,
+    instr.LD_ha,
+    instr.LD_lb,
+    instr.LD_lc,
+    instr.LD_ld,
+    instr.LD_le,
+    instr.LD_lh,
+    instr.LD_ll,
+    instr.LD_LaHL,
+    instr.LD_la,
+
+    //0x70
+    instr.LD_aHLB,
+    instr.LD_aHLC,
+    instr.LD_aHLD,
+    instr.LD_aHLE,
+    instr.LD_aHLH,
+    instr.LD_aHLL,
+    instr.HALT,
+    instr.LD_aHLA,
+    instr.LD_ab,
+    instr.LD_ac,
+    instr.LD_ad,
+    instr.LD_ae,
+    instr.LD_ah,
+    instr.LD_al,
+    instr.LD_AaHL,
+    instr.LD_aa,
+]
+
+processor = {
+
+    //  Single byte registers are a, b, c, d, e, h, l    
+    //  Registers may also be used as 16-bit registers:
+    //  AF, BC, DE, HL
+    //  sp: stack pointer, pc: program counter
+    //  t: time, m: machine time, f: flags
+    //  i: interrupts flag, ime: interrupt master enable
+    //  Flags:   Zero (Z), Subtract (N), Half-Carry(H),
+    //           Carry (C)
+    //           7 6 5 4 3 2 1 0
+    //           Z N H C 0 0 0 0
+
+    _reg: { a:0, f:0, b:0, c:0, d:0, e:0, h:0, l:0,
+        sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
+    _halt: 0,
+    _stop: 0,
+    _clock: {m:0, t:0},
+    exec: function(){
+        //read the instruction in program counter
+        console.log("Executing instruction. Registers:")
+        console.log(processor._reg)
+        ins = MM.read(processor._reg.pc);
+        RegFnMap[ins](function(){
+            /* Anonymous callback to increment the PC only after instruction has finished */
+            processor._reg.pc++;
+        });
+        if(!RegFnMap[ins]){
+            console.log("FATAL! MISSING INSTRUCTION: 0x%s" + (MM.read(processor._reg.pc)).toString(2))
+        }
+        processor._clock.m+=processor._reg.m;
+        processor._clock.t+=processor._reg.t;
+        /*
+            Check for interrupts, do GPU stuff?
+            Still need to work out how timing works
+        */
+    },
+    init: function(){
+        console.log("Initializing CPU...")
+        processor._reg = { a:0, f:0, b:0, c:0, d:0, e:0, h:0,l:0, sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
+        processor._halt = 0;
+        processor._stop = 0;
+        processor._clock = {m:0, t:0}
+        processor.exec();
+    },        
+}
+

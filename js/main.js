@@ -1,5 +1,3 @@
-import './mm.js'
-
 $('document').ready(function(){
 
    const take_byte = (function(byte){
@@ -23,7 +21,8 @@ $('document').ready(function(){
         infoStr += "</p><p>File Size: " + myFile.size +" bytes</p>"
         $('.debuggingInfo').html(infoStr)
         
-      })  
+    })  
 
-      document.getElementById('ROMUpload').addEventListener('change', readFile, false);
-    });
+    document.getElementById('ROMUpload').addEventListener('change', readFile, false);
+
+});
