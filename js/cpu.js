@@ -697,9 +697,9 @@ instr = {
         //0x01
         LD_BCnn: function(){
             processor._reg.pc++;
-            MM.write(processor._reg.c,MM.read(processor._reg.pc));
+            MM.write(processor._reg.c,processor._reg.pc);
             processor._reg.pc++;
-            MM.write(processor._reg.b,MM.read(processor._reg.pc));
+            MM.write(processor._reg.b,processor._reg.pc);
             processor._reg.m=3;
             processor._reg.t=12;
         },
@@ -707,9 +707,9 @@ instr = {
         //0x11
         LD_DEnn: function(){
             processor._reg.pc++;
-            MM.write(processor._reg.e,MM.read(processor._reg.pc));
+            MM.write(processor._reg.e,processor._reg.pc);
             processor._reg.pc++;
-            MM.write(processor._reg.d,MM.read(processor._reg.pc));
+            MM.write(processor._reg.d,processor._reg.pc);
             processor._reg.m=3;
             processor._reg.t=12;
         },
@@ -717,19 +717,18 @@ instr = {
         //0x21
         LD_HLnn: function(){
             processor._reg.pc++;
-            MM.write(processor._reg.h,MM.read(processor._reg.pc));
+            MM.write(processor._reg.h,processor._reg.pc);
             processor._reg.pc++;
-            MM.write(processor._reg.l,MM.read(processor._reg.pc));
+            MM.write(processor._reg.l,processor._reg.pc);
             processor._reg.m=3;
             processor._reg.t=12;
         },
            
         //0x31
         LD_SPnn: function(){
-            processor._reg.pc++;
-            MM.write(processor._reg.c,MM.read(processor._reg.pc));
-            processor._reg.pc++;
-            MM.write(processor._reg.b,MM.read(processor._reg.pc));
+            MM.write(processor._reg.c,processor._reg.pc+1);
+            MM.write(processor._reg.b,processor._reg.pc+2);
+            processor._reg.pc+=2;
             processor._reg.m=3;
             processor._reg.t=12;
         },
@@ -1811,17 +1810,27 @@ processor = {
     _halt: 0,
     _stop: 0,
     _clock: {m:0, t:0},
+
+    ohShit: 0,
+
+    check: function(){
+        if(processor.ohShit==1){
+            console.log("Ohshit button activated! ABORTING!")
+        } else {
+            processor.exec();
+        }
+    },
+
     exec: function(){
         //read the instruction in program counter
-        console.log("Executing instruction. Registers:")
-        console.log(processor._reg)
         ins = MM.read(processor._reg.pc);
-        RegFnMap[ins](function(){
-            /* Anonymous callback to increment the PC only after instruction has finished */
-            processor._reg.pc++;
-        });
+        console.log("Read instruction: 0x"+ ins.toString(16) +" ("+ MM._booting +")")
         if(!RegFnMap[ins]){
-            console.log("FATAL! MISSING INSTRUCTION: 0x%s" + (MM.read(processor._reg.pc)).toString(2))
+            console.log("FATAL! MISSING INSTRUCTION: 0x" + (MM.read(processor._reg.pc)).toString(16))
+            processor.ohShit = 1;
+        } else {
+            console.log("tryna call "+ins)
+            RegFnMap[ins]();
         }
         processor._clock.m+=processor._reg.m;
         processor._clock.t+=processor._reg.t;
@@ -1829,6 +1838,7 @@ processor = {
             Check for interrupts, do GPU stuff?
             Still need to work out how timing works
         */
+
     },
     init: function(){
         console.log("Initializing CPU...")
