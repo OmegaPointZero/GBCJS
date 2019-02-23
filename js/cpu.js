@@ -421,7 +421,9 @@ instr = {
         
         //0x02
         LD_aBC_A: function(callback){
-            MM.write(l_addr(processor._reg.b,processor._reg.c),processor._reg.a);
+            var bc = processor._reg.b<<8;
+            bc += processor._reg.c;
+            MM.write(bc,processor._reg.a);
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -429,7 +431,9 @@ instr = {
         
         //0x12
         LD_aDE_A: function(callback){
-            MM.write(l_addr(processor._reg.d,processor._reg.e),processor._reg.a);
+            var bc = processor._reg.d<<8;
+            de += processor._reg.e;
+            MM.write(bc,processor._reg.a);
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -437,8 +441,9 @@ instr = {
 
         //0x22
         LD_aHLi_A: function(callback){
-            var hl = l_addr(processor._reg.h,processor._reg.l);
-            MM.write(hl,processor._reg.a);
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            MM.write(bc,processor._reg.a);
             hl += 1;
             processor._reg.h=(hl&0xff00)>>8;
             processor._reg.l=(hl&0xff);
@@ -449,7 +454,8 @@ instr = {
 
         //0x32
         LD_aHLd_A: function(callback){
-            var hl = l_addr(processor._reg.h,processor._reg.l);
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
             MM.write(hl,processor._reg.a);
             hl -= 1;
             processor._reg.h=(hl&0xff00)>>8;
@@ -489,7 +495,8 @@ instr = {
         //0x36
         LD_aHLd8: function(callback){
             processor._reg.pc++
-            var hl = l_addr(processor._reg.h,processor._reg.l);
+            var hl = processor._reg.h<<8
+            hl+=processor._reg.l;
             MM.write(hl, MM.read(processor._reg.pc));
             processor._reg.m=3;
             processor._reg.t=12;
@@ -498,7 +505,10 @@ instr = {
 
         //0x0a
         LD_AaBC: function(callback){
-            processor._reg.a=MM.read(l_addr(processor._reg.b,processor._reg.c));
+            processor._reg.pc++
+            var bc = processor._reg.b<<8
+            bc+=processor._reg.c;
+            MM.write(bc, MM.read(processor._reg.pc));
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -506,7 +516,10 @@ instr = {
 
         //0x1a
         LD_AaDE: function(callback){
-            processor._reg.a=MM.read(l_addr(processor._reg.d,processor._reg.e));
+           processor._reg.pc++
+            var de = processor._reg.d<<8
+            de+=processor._reg.e;
+            MM.write(de, MM.read(processor._reg.pc));
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -514,9 +527,11 @@ instr = {
 
         //0x2a
         LD_AaHLi: function(callback){
-            var hl = l_addr(processor._reg.h,processor._reg.l);
-            processor._reg.a=MM.read(hl);
-            hl += 1;
+            processor._reg.pc++
+            var bc = processor._reg.b<<8
+            bc+=processor._reg.c;
+            MM.write(bc, MM.read(processor._reg.pc));
+            hl++;
             processor._reg.h=hl&0xff00>>8;
             processor._reg.l=hl&0xff;
             processor._reg.m=2;
@@ -526,9 +541,11 @@ instr = {
 
         //0x3a
         LD_AaHLd: function(callback){
-            var hl = l_addr(processor._reg.h,processor._reg.l);
-            processor._reg.a=MM.read(hl);
-            hl += 1;
+            processor._reg.pc++
+            var bc = processor._reg.b<<8
+            bc+=processor._reg.c;
+            MM.write(bc, MM.read(processor._reg.pc));
+            hl++;
             processor._reg.h=hl&0xff00>>8;
             processor._reg.l=hl&0xff;            
             processor._reg.m=2;
@@ -1073,7 +1090,7 @@ instr = {
                 }
             } else {
                 processor._reg.m = 2;
-                processor._reg.m = 8;
+                processor._reg.t = 8;
             } 
             callback()
          },
@@ -1096,7 +1113,7 @@ instr = {
                 }
             } else {
                 processor._reg.m = 2;
-                processor._reg.m = 8;
+                processor._reg.t = 8;
             } 
             callback()
          },
@@ -1136,7 +1153,7 @@ instr = {
                 }
             } else {
                 processor._reg.m = 2;
-                processor._reg.m = 8;
+                processor._reg.t = 8;
             } 
             callback()
          },
@@ -1153,16 +1170,265 @@ instr = {
                     processor._reg.m = 3;
                     processor._reg.t = 12;
                 } else if(byte&(1<<7)!=0x80){
-                    processor._reg.pc = processor._reg.pc + byte
+                    processor._reg.pc = processor._reg.pc + byte -1
                     processor._reg.m = 3;
                     processor._reg.t = 12;
                 }
             } else {
                 processor._reg.m = 2;
-                processor._reg.m = 8;
+                processor._reg.t = 8;
             } 
             callback()
          },
+
+        //0xC0
+        RETNZ: function(callback) { 
+            processor._reg.m=2;
+            processor._reg.t=8;
+            if(processor._reg.f&0x80 == 0){
+                processor._reg.m=5;
+                processor._reg.t=20;
+                processor._reg.pc = processor._reg.sp -1;
+                processor._reg.sp += 2;
+            }
+            callback();
+        },
+
+        //0xD0
+        RETNC: function(callback) { 
+            processor._reg.m=2;
+            processor._reg.t=8;
+            if(processor._reg.f&0x10 == 0){
+                processor._reg.m=5;
+                processor._reg.t=20;
+                processor._reg.pc = processor._reg.sp -1;
+                processor._reg.sp += 2;
+            }
+            callback();
+        },
+
+        //0xC8
+        RETZ: function(callback) { 
+            processor._reg.m=2;
+            processor._reg.t=8;
+            if(processor._reg.f&0x80 != 0){
+                processor._reg.m=5;
+                processor._reg.t=20;
+                processor._reg.pc = processor._reg.sp -1;
+                processor._reg.ps += 2;
+            }
+            callback();
+        },
+
+        //0xD8
+        RETC: function(callback) { 
+            processor._reg.m=2;
+            processor._reg.t=8;
+            if(processor._reg.f&0x10 != 0){
+                processor._reg.m=5;
+                processor._reg.t=20;
+                processor._reg.pc = processor._reg.sp -1;
+                processor._reg.ps += 2;
+            }
+            callback();
+        },
+
+        //0xC9
+        RET: function(callback) { 
+            processor._reg.pc = processor._reg.sp;
+            processor._reg.ps += 2;
+            processor._reg.m=4;
+            processor._reg.t=16;
+            callback();
+        },
+        
+        //0xCA
+        RETI: function(callback) { 
+            /* FIGURE OUT WHAT THIS DOES DIFFERENT FROM RET */
+            processor._reg.pc = processor._reg.sp;
+            processor._reg.ps += 2;
+            processor._reg.m=4;
+            processor._reg.t=16;
+            callback();
+        },
+
+        /* A16: ABSOLUTE ADDRESS*/
+        //0xC2
+        JPNZa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            if(processor._reg.f&0x80 == 0){
+                processor._reg.m=4;
+                processor._reg.t=16;
+                processor._reg.pc++;
+                var a = MM.read(processor._reg.pc);
+                processor._reg.pc++;
+                a += MM.read(processor._reg.pc)<<8;
+                processor._reg.pc = a -1;
+            }
+            callback();
+        },
+
+        //0xD2
+        JPNCa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            if(processor._reg.f&0x10 == 0){
+                processor._reg.m=4;
+                processor._reg.t=16;
+                processor._reg.pc++;
+                var a = MM.read(processor._reg.pc);
+                processor._reg.pc++;
+                a += MM.read(processor._reg.pc)<<8;
+                processor._reg.pc = a -1;
+            } else {
+                callback();
+            }
+        },
+
+        //0xCA
+        JPZa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            if(processor._reg.f&0x80 != 0){
+                processor._reg.m=4;
+                processor._reg.t=16;
+                processor._reg.pc++;
+                var a = MM.read(processor._reg.pc);
+                processor._reg.pc++;
+                a += MM.read(processor._reg.pc)<<8;
+                processor._reg.pc = a -1;
+            }
+            callback();
+        },
+
+        //0xDA
+        JPCa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            if(processor._reg.f&0x10 != 0){
+                processor._reg.m=4;
+                processor._reg.t=16;
+                processor._reg.pc++;
+                var a = MM.read(processor._reg.pc);
+                processor._reg.pc++;
+                a += MM.read(processor._reg.pc)<<8;
+                processor._reg.pc = a -1;
+            } else {
+                callback();
+            }
+        },
+
+        //0xC3
+        JPa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            processor._reg.pc++;
+            var a = MM.read(processor._reg.pc);
+            processor._reg.pc++;
+            a += MM.read(processor._reg.pc)<<8;
+            processor._reg.pc = a -1;
+            callback();
+        },
+
+        //0xE9
+        JPaHL: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            var a = processor._reg.h<<8;
+            var a += processor._reg.l;
+            processor._reg.pc = a -1;
+            callback();
+        },
+
+/* convert these to calls not jumps */
+        //0xC4
+        CALLNZa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            if(processor._reg.f&0x80 == 0){
+                processor._reg.m=4;
+                processor._reg.t=16;
+                processor._reg.pc++;
+                var a = MM.read(processor._reg.pc);
+                processor._reg.pc++;
+                a += MM.read(processor._reg.pc)<<8;
+                processor._reg.sp-=2;
+                MM.write(processor._reg.sp,processor._reg.pc)
+                processor._reg.pc = a -1;
+            }
+            callback();
+        },
+
+        //0xD4
+        CALLNCa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            if(processor._reg.f&0x10 == 0){
+                processor._reg.m=4;
+                processor._reg.t=16;
+                processor._reg.pc++;
+                var a = MM.read(processor._reg.pc);
+                processor._reg.pc++;
+                a += MM.read(processor._reg.pc)<<8;
+                processor._reg.sp-=2;
+                MM.write(processor._reg.sp,processor._reg.pc)
+                processor._reg.pc = a -1;
+            } else {
+                callback();
+            }
+        },
+
+        //0xCA
+        CALLZa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            if(processor._reg.f&0x80 != 0){
+                processor._reg.m=4;
+                processor._reg.t=16;
+                processor._reg.pc++;
+                var a = MM.read(processor._reg.pc);
+                processor._reg.pc++;
+                a += MM.read(processor._reg.pc)<<8;
+                processor._reg.sp-=2;
+                MM.write(processor._reg.sp,processor._reg.pc)
+                processor._reg.pc = a -1;
+            }
+            callback();
+        },
+
+        //0xDA
+        CALLCa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            if(processor._reg.f&0x10 != 0){
+                processor._reg.m=4;
+                processor._reg.t=16;
+                processor._reg.pc++;
+                var a = MM.read(processor._reg.pc);
+                processor._reg.pc++;
+                a += MM.read(processor._reg.pc)<<8;
+                processor._reg.sp-=2;
+                MM.write(processor._reg.sp,processor._reg.pc)
+                processor._reg.pc = a -1;
+            } else {
+                callback();
+            }
+        },
+
+        //0xDB
+        CALLa16: function(callback) { 
+            processor._reg.m=3;
+            processor._reg.t=12;
+            processor._reg.pc++;
+            var a = MM.read(processor._reg.pc);
+            processor._reg.pc++;
+            a += MM.read(processor._reg.pc)<<8;
+            processor._reg.sp-=2;
+            MM.write(processor._reg.sp,processor._reg.pc)
+            processor._reg.pc = a -1;
+            callback();
+        },
 
         /* 
             8-bit arithmetic sequences
@@ -1724,6 +1990,1183 @@ if((hl+bc)&0xff!=(hl+bc)){
             callback()
          },
 
+        //0x80
+        ADD_ab: function(callback){
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + processor._reg.b&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + processor._reg.b) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + processor._reg.b)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += processor._reg.b;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x81
+        ADD_ac: function(callback){
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + processor._reg.c&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + processor._reg.c) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + processor._reg.c)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += processor._reg.c;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x82
+        ADD_ad: function(callback){
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + processor._reg.d&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + processor._reg.d) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + processor._reg.d)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += processor._reg.d;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x83
+        ADD_ae: function(callback){
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + processor._reg.e&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + processor._reg.e) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + processor._reg.e)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += processor._reg.e;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x84
+        ADD_ah: function(callback){
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + processor._reg.h&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + processor._reg.h) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + processor._reg.h)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += processor._reg.h;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+        //0x85
+        ADD_al: function(callback){
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + processor._reg.l&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + processor._reg.l) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + processor._reg.l)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += processor._reg.l;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+        //0x86
+        ADD_aaHL: function(callback){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + h&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + h) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + h)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += processor._reg.h;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },      
+ 
+        //0x87
+        ADD_aa: function(callback){
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + processor._reg.a&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + processor._reg.a) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + processor._reg.a)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += processor._reg.a;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x90
+        SUB_B: function(callback){
+            /* Set N flag for subtraction */
+            processor._reg.f = (1<<6);
+            /* test for half carry per https://www.reddit.com/r/EmuDev/comments/4clh23/trouble_with_halfcarrycarry_flag/ */
+            if((processor._reg.a & 0xf) - (processor._reg.b & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            /* Set carry if b>a*/
+            if(processor._reg.b > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            
+            /* test if zero */
+            if((processor._reg.a - processor._reg.b)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= processor._reg.b;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x91
+        SUB_C: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.c & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.c > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.c)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= processor._reg.c;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x92
+        SUB_D: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.d & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.d > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.d)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= processor._reg.d;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+        //0x93
+        SUB_E: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.e & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.e > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.e)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= processor._reg.e;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x94
+        SUB_H: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.h & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.h > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.h)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= processor._reg.h;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+        //0x95
+        SUB_L: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.l & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.l > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.l)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= processor._reg.l;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+        //0x96
+        SUB_aHL: function(callback){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (h & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(h > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - h)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= h;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x97
+        SUB_A: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.a & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.a > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.a)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= processor._reg.a;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x88
+        ADDC_ab: function(callback){
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= processor._reg.b;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x89
+        ADDC_ac: function(callback){
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= processor._reg.c;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x8A
+        ADDC_ad: function(callback){
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= processor._reg.d;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x8B
+        ADDC_ae: function(callback){
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= processor._reg.e;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x8C
+        ADDC_ah: function(callback){
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= processor._reg.h;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x8D
+        ADDC_al: function(callback){
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= processor._reg.l;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         }, 
+      
+        //0x8E
+        ADDC_aaHL: function(callback){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= h;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },      
+ 
+        //0x8F
+        ADDC_aa: function(callback){
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= processor._reg.a;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x98
+        SUBC_B: function(callback){
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += processor._reg.b
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x99
+        SUBC_C: function(callback){
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += processor._reg.c
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x9A
+        SUBC_D: function(callback){
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += processor._reg.d
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x9B
+        SUBC_E: function(callback){
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += processor._reg.e
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x9C
+        SUBC_H: function(callback){
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += processor._reg.h
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x9D
+        SUBC_L: function(callback){
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += processor._reg.l
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },   
+    
+        //0x9E  
+        SUBC_aHL: function(callback){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += h
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0x9F
+        SUBC_A: function(callback){
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += processor._reg.a
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0xA0
+        AND_B: function(callback){
+            processor._reg.a &= processor._reg.b;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA0
+        AND_C: function(callback){
+            processor._reg.a &= processor._reg.c;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA0
+        AND_D: function(callback){
+            processor._reg.a &= processor._reg.d;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA3
+        AND_E: function(callback){
+            processor._reg.a &= processor._reg.e;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA4
+        AND_H: function(callback){
+            processor._reg.a &= processor._reg.h;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA5
+        AND_L: function(callback){
+            processor._reg.a &= processor._reg.l;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA6
+        AND_aHL: function(callback){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
+            processor._reg.a &= h;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA7
+        AND_A: function(callback){
+            processor._reg.a &= processor._reg.a;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA8
+        XOR_B: function(callback){
+            processor._reg.a ^= processor._reg.b;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xA9
+        XOR_C: function(callback){
+            processor._reg.a ^= processor._reg.c;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xAA
+        XOR_D: function(callback){
+            processor._reg.a ^= processor._reg.d;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xAB
+        XOR_E: function(callback){
+            processor._reg.a ^= processor._reg.e;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xAC
+        XOR_H: function(callback){
+            processor._reg.a ^= processor._reg.h;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xAD
+        XOR_L: function(callback){
+            processor._reg.a ^= processor._reg.l;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xAE
+        XOR_aHL: function(callback){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
+            processor._reg.a ^= h;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xAF
+        XOR_A: function(callback){
+            processor._reg.a ^= processor._reg.a;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB0
+        OR_B: function(callback){
+            processor._reg.a |= processor._reg.b;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB1
+        OR_C: function(callback){
+            processor._reg.a |= processor._reg.c;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB2
+        OR_D: function(callback){
+            processor._reg.a |= processor._reg.d;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB3
+        OR_E: function(callback){
+            processor._reg.a |= processor._reg.e;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB4
+        OR_H: function(callback){
+            processor._reg.a |= processor._reg.h;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB5
+        OR_L: function(callback){
+            processor._reg.a |= processor._reg.l;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB6
+        OR_aHL: function(callback){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
+            processor._reg.a |= h;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB7
+        OR_A: function(callback){
+            processor._reg.a |= processor._reg.a;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xB8
+        CP_B: function(callback){
+            /* Set N flag for subtraction */
+            processor._reg.f = (1<<6);
+            /* test for half carry per https://www.reddit.com/r/EmuDev/comments/4clh23/trouble_with_halfcarrycarry_flag/ */
+            if((processor._reg.a & 0xf) - (processor._reg.b & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            /* Set carry if b>a*/
+            if(processor._reg.b > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            
+            /* test if zero */
+            if((processor._reg.a - processor._reg.b)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0xB9
+        CP_C: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.c & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.c > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.c)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0xBA
+        CP_D: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.d & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.d > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.d)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+        //0xBB
+        CP_E: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.e & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.e > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.e)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0xBC
+        CP_H: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.h & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.h > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.h)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+        //0xBD
+        CP_L: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.l & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.l > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.l)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+        //0xBE
+        CP_aHL: function(callback){
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
+            var h = MM.read(hl);
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (h & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(h > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - h)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0xBF
+        CP_A: function(callback){
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (processor._reg.a & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.a > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - processor._reg.a)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },    
+
+
+
+
+
+
+
+
+        //0xC6
+        ADD_Ad8: function(callback){
+            processor._reg.pc++;
+            var d = MM.read(processor._reg.pc)
+            processor._reg.f = 0x00;
+            /* test for half-carry */
+            if((processor._reg.a&0xf + d&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            /* test for carry */
+            if((processor._reg.a + d) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            /* test if zero */
+            if((processor._reg.a + d)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += d;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },       
+
+        //0xCE
+        ADDC_d8: function(callback){
+            processor._reg.pc++;
+            var d = MM.read(processor._reg.pc)
+            var z = 0;
+            if(processor._reg.f&0x10){z++}
+            z+= d;
+            if((processor._reg.a&0xf + z&0xf) & 0x10 == 0x10){
+                processor._reg.f += (1<<5);
+            }
+            if((processor._reg.a + z) > 0x100 ){
+                processor._reg.f += (1<<4);
+            }            
+            if((processor._reg.a + z)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a += z;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         }, 
+
+        //0xD6
+        SUB_d8: function(callback){
+            processor._reg.pc++;
+            var d = MM.read(processor._reg.pc)
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (d & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(h > processor._reg.a) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - h)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.a -= h;
+            processor._reg.a &= 0xff;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         }, 
+
+        //0xDE  
+        SUBC_d8: function(callback){
+            processor._reg.pc++;
+            var d = MM.read(processor._reg.pc)
+            var t = 0;
+            if(processor._reg.f & 0x10) { t++ }
+            processor._reg.f = (1<<6);
+            t += d
+            if((processor._reg.a & 0xf) - (t & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            processor._reg.a -= t
+            processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
+            processor._reg.a &= 0xff,
+            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+         },   
+
+        //0xE6
+        AND_d8: function(callback){
+            processor._reg.pc++;
+            var d = MM.read(processor._reg.pc)
+            processor._reg.a &= d;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.f += (1<<5)
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xEE
+        XOR_d8: function(callback){
+            processor._reg.pc++;
+            var d = MM.read(processor._reg.pc)
+            processor._reg.a ^= d;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 1;
+            processor._reg.t = 4;
+            callback()
+        },
+
+        //0xF6
+        OR_d8: function(callback){
+            processor._reg.pc++;
+            var d = MM.read(processor._reg.pc)
+            processor._reg.a |= d;
+            processor._reg.a == 0 ? processor._reg.f = (1<<7) : processor._reg.f = 0;
+            processor._reg.m = 2;
+            processor._reg.t = 8;
+            callback()
+        },
+
+
+        //0xFE
+        CP_d8: function(callback){
+            processor._reg.pc++;
+            var d = MM.read(processor._reg.pc)
+            processor._reg.f = (1<<6);
+            if((processor._reg.a & 0xf) - (d & 0xf) > 0) {
+                processor._reg.f += (1<<5);
+            }
+            if(processor._reg.a > d) {
+                processor._reg.f += (1<<4);
+            }
+            if((processor._reg.a - d)&0xff == 0){
+                processor._reg.f += (1<<7);
+            }
+            processor._reg.m = 2;
+            processor._reg.t = 8;
+            callback()
+         },    
+
+
+   
         /*
             8-bit rotation/shift bit instructions
         */
@@ -1799,10 +3242,15 @@ if((hl+bc)&0xff!=(hl+bc)){
             callback()
          },
 
-        /*
-            END OF FIRST 0x80 INSTRUCTIONS!
-        */
+        CBFILLER: function(callback){
+            console.log('CB FILLER!')
+            callback()
+        },
 
+        UNDOC: function(callback){
+            console.log("Undocumented opcode!")
+            callback()
+        },
         
 
 }
@@ -1952,6 +3400,150 @@ RegFnMap = [
     instr.LD_al,
     instr.LD_AaHL,
     instr.LD_aa,
+        
+    //0x80
+    instr.ADD_ab,
+    instr.ADD_ac,
+    instr.ADD_ad,
+    instr.ADD_ae,
+    instr.ADD_ah,
+    instr.ADD_al,
+    instr.ADD_aaHL,
+    instr.ADD_aa,
+    instr.ADDC_ab,
+    instr.ADDC_ac,
+    instr.ADDC_ad,
+    instr.ADDC_ae,
+    instr.ADDC_ah,
+    instr.ADDC_al,
+    instr.ADDC_aaHL,
+    instr.ADDC_aa,
+
+    //0x90
+    instr.SUB_B,
+    instr.SUB_C,
+    instr.SUB_D,
+    instr.SUB_E,
+    instr.SUB_H,
+    instr.SUB_L,
+    instr.SUB_aHL,
+    instr.SUB_A,
+    instr.SUBC_B,
+    instr.SUBC_C,
+    instr.SUBC_D,
+    instr.SUBC_E,
+    instr.SUBC_H,
+    instr.SUBC_L,
+    instr.SUBC_aHL,
+    instr.SUBC_A,
+
+    //0xA0
+    instr.AND_B,
+    instr.AND_C,
+    instr.AND_D,
+    instr.AND_E,
+    instr.AND_H,
+    instr.AND_L,
+    instr.AND_aHL,
+    instr.AND_A,
+    instr.XOR_B,
+    instr.XOR_C,
+    instr.XOR_D,
+    instr.XOR_E,
+    instr.XOR_H,
+    instr.XOR_L,
+    instr.XOR_aHL,
+    instr.XOR_A,
+    
+    //0xB0
+    instr.OR_B,
+    instr.OR_C,
+    instr.OR_D,
+    instr.OR_E,
+    instr.OR_H,
+    instr.OR_L,
+    instr.OR_aHL,
+    instr.OR_A,
+    instr.CP_B,
+    instr.CP_C,
+    instr.CP_D,
+    instr.CP_E,
+    instr.CP_H,
+    instr.CP_L,
+    instr.CP_aHL,
+    instr.CP_A,
+
+    //0xC0
+    instr.RETNZ,
+    instr.POP_BC,
+    instr.JPNZa16,
+    instr.JPa16,
+    instr.CALLNZa16,
+    instr.PUSH_BC,
+    instr.ADD_Ad8,
+    instr.R_0,
+    instr.RETZ,
+    instr.RET,
+    instr.JPZa16,
+    instr.CB,
+    instr.CALLZa16,
+    instr.CALLa16,
+    instr.ADDC_Ad8,
+    instr.R_8,
+
+    //0xD0
+    instr.RETNC,
+    instr.POP_DE,
+    instr.JPNCa16,
+    instr.UNDOC,
+    instr.CALLNCa16,
+    instr.PUSH_DE,
+    instr.SUB_d8,
+    instr.R_10,
+    instr.RETC,
+    instr.RETI,
+    instr.JPCa16,
+    instr.UNDOC,
+    instr.CALLCa16,
+    instr.UNDOC,
+    instr.SUBC_Ad8,
+    instr.R_18,
+
+    //0xE0
+    instr.LD_ff00nA,
+    instr.POP_HL,
+    instr.LD_ff00cA,
+    instr.UNDOC,
+    instr.UNDOC,
+    instr.PUSH_HL,
+    instr.AND_d8,
+    instr.R_20,
+    instr.ADD_SPn,
+    instr.JP_aHL,
+    instr.LD_nnA,  
+    instr.UNDOC,
+    instr.UNDOC,
+    instr.UNDOC,
+    instr.XOR_d8,
+    instr.R_28,
+    
+    //0xF0
+    instr.LD_Aff00n,
+    instr.POP_AF,
+    instr.LD_Aff00c,
+    instr.DI,
+    instr.UNDOC,
+    instr.PUSH_AF,
+    instr.OR_d8,
+    instr.R_30,
+    instr.LDHL_SPd8,
+    instr.LD_SPHL
+    instr.Ann,
+    instr.EI,
+    instr.UNDOC,
+    instr.UNDOC,
+    instr.CP_d8,
+    instr.R_38,
 ]
 
 processor = {
@@ -2000,6 +3592,7 @@ processor = {
         }
         processor._clock.m+=processor._reg.m;
         processor._clock.t+=processor._reg.t;
+        console.log(processor._reg)
         /*
             Check for interrupts, do GPU stuff?
             Still need to work out how timing works
@@ -2011,7 +3604,7 @@ processor = {
         processor._reg = { a:0, f:0, b:0, c:0, d:0, e:0, h:0,l:0, sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
         processor._halt = 0;
         processor._stop = 0;
-        processor._clock = {m:0, t:0}
+        processor._clock = {m:0, t:0};
         processor.exec();
     },        
 }
