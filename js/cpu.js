@@ -443,7 +443,7 @@ instr = {
         LD_aHLi_A: function(callback){
             var hl = processor._reg.h<<8;
             hl += processor._reg.l;
-            MM.write(bc,processor._reg.a);
+            MM.write(hl,processor._reg.a);
             hl += 1;
             processor._reg.h=(hl&0xff00)>>8;
             processor._reg.l=(hl&0xff);
@@ -583,7 +583,7 @@ instr = {
         //0x3e
         LD_Ad8: function(callback){
             processor._reg.pc++;
-            processor._reg.a=MM.read(processor._reg.pc);
+            processor._reg.a= MM.read(processor._reg.pc);
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -593,8 +593,8 @@ instr = {
         LD_ff00nA: function(callback){
             var ad = 0xff00;
             processor._reg.pc++;
-            ad += read(processor._reg.pc);
-            write(ad,processor._reg.a);
+            ad += MM.read(processor._reg.pc);
+            MM.write(ad,processor._reg.a);
             processor._reg.m=3;
             processor._reg.t=12;
             callback()
@@ -604,8 +604,8 @@ instr = {
         LD_Aff00n: function(callback){
             var ad = 0xff00;
             processor._reg.pc++;
-            ad += read(processor._reg.pc);
-            write(processor._reg.a,MM.read(ad));
+            ad += MM.read(processor._reg.pc);
+            MM.write(processor._reg.a,MM.read(ad));
             processor._reg.m=3;
             processor._reg.t=12;
             callback()
@@ -615,8 +615,8 @@ instr = {
         LD_ff00cA: function(callback){
             var ac = 0xff00;
             processor._reg.pc++;
-            ac += read(processor._reg.pc);
-            write(ac,processor._reg.a);
+            ac += MM.read(processor._reg.pc);
+            MM.write(ac,processor._reg.a);
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -626,7 +626,7 @@ instr = {
         LD_Aff00c: function(callback){
             var ac = 0xff00;
             processor._reg.pc++;
-            ac += read(processor._reg.pc);
+            ac += MM.read(processor._reg.pc);
             write(processor._reg.a,MM.read(ac));
             processor._reg.m=2;
             processor._reg.t=8;
@@ -640,7 +640,7 @@ instr = {
             adr = adr<<8;
             processor._reg.pc++;
             adr == processor._reg.pc;
-            write(adr,processor._reg.a);
+            MM.write(adr,processor._reg.a);
             processor._reg.m=4;
             processor._reg.t=16;
             callback()
@@ -653,7 +653,7 @@ instr = {
             adr = adr<<8;
             processor._reg.pc++;
             adr == processor._reg.pc;
-            write(adr,processor._reg.a);
+            MM.write(adr,processor._reg.a);
             processor._reg.m=4;
             processor._reg.t=16;
             callback()
@@ -827,9 +827,9 @@ instr = {
         //0x21
         LD_HLnn: function(callback){
             processor._reg.pc++;
-            MM.write(processor._reg.h,processor._reg.pc);
+            processor._reg.h = MM.read(processor._reg.pc)
             processor._reg.pc++;
-            MM.write(processor._reg.l,processor._reg.pc);
+            processor._reg.l = MM.read(processor._reg.pc)
             processor._reg.m=3;
             processor._reg.t=12;
             callback()
@@ -838,9 +838,11 @@ instr = {
         //0x31
         LD_SPnn: function(callback){
             processor._reg.pc++;
-            processor._reg.c=MM.read(processor._reg.pc);
+            var s = MM.read(processor._reg.pc);
             processor._reg.pc++;
-            processor._reg.b=MM.read(processor._reg.pc);
+            var p = MM.read(processor._reg.pc);
+            p = (p<<8) + s;
+            processor._reg.sp = p;
             processor._reg.m=3;
             processor._reg.t=12;
             callback()
@@ -863,7 +865,7 @@ instr = {
         POP_BC: function(callback){
             processor._reg.c = MM.read(processor._reg.sp);
             processor._reg.sp++;
-            processor._reg.b = M.read(processor._reg.sp);
+            processor._reg.b = MM.read(processor._reg.sp);
             processor._reg.sp++;
             processor._reg.m=3;
             processor._reg.t=12;            
@@ -1074,10 +1076,19 @@ instr = {
 
         //0x20
         JRNZn: function(callback){
+            /* 
+                HOKAY so we are having some problems right here
+                LIKE FOR SOME REASON, IT DOESN'T DO THE LOOP DURING THE 
+                INITIAL BOOT SEQUENCE, IT DOENS'T JUMP AND I THINK IT STARTS TO
+                EXECUTE DATA
+            */
             processor._reg.pc++;
+            var byte = MM.read(processor._reg.pc)
             // if zero flag is not set
-            if(processor._reg.f&(1<<7) != 0x80){
-                var byte = MM.read(processor._reg.pc)
+            console.log("flags: 0x"+byte.toString(16)+" ("+byte.toString(2)+")")
+            console.log(byte&(1<<7))
+            if(processor._reg.f&(1<<7) == 0x80){
+                console.log("Zero flag not set, JRNZn()")
                 if(byte&(1<<7)==0x80){
                     var o = byte&0x7f;
                     processor._reg.pc = processor._reg.pc + (-128+o);
@@ -1336,12 +1347,11 @@ instr = {
             processor._reg.m=3;
             processor._reg.t=12;
             var a = processor._reg.h<<8;
-            var a += processor._reg.l;
+            a += processor._reg.l;
             processor._reg.pc = a -1;
             callback();
         },
 
-/* convert these to calls not jumps */
         //0xC4
         CALLNZa16: function(callback) { 
             processor._reg.m=3;
@@ -1818,14 +1828,7 @@ instr = {
             processor._reg.t = 4;
             callback()
          },
-        /* 
-            algo to check for half-carry:
-            var ob = processor._reg.b;
-            var sum = (ob&0xf) + 1;
-            if(sum&0x10==0x10){
-                processor._reg.f += (1<<5);
-            }
-        */
+ 
         //0x09
         ADD_HLBC: function(callback){
             processor._reg.f = 0;
@@ -3255,6 +3258,346 @@ if((hl+bc)&0xff!=(hl+bc)){
 
 }
 
+cbInstr = {
+
+    NOP: function(callback) {
+        console.log("CB NOP CALLED!")
+        processor._reg.m=1;
+        processor._reg.t=4;
+        callback()
+    },
+    
+    //0x11
+    RL_C: function(callback) { 
+        /* see if carry flag is set */
+        var cf = processor._reg.f & (1<<4) ? 1 : 0;
+        /* see if highest bit is 1, so we can set carry flag */
+        var c = processor._reg.c & (1<<7) ? (1<<4) : 0
+        processor._reg.c<<1 + cf;
+        processor._reg.f = 0;
+        processor._reg.c &= 0xff;
+        /* set flags */
+        if(processor._reg.c==0){
+            processor._reg.f += (1<<7)
+        }
+        processor._reg.f += c
+        processor._reg.m=2; 
+        processor._reg.t=8; 
+        callback()
+    },
+
+    BIT_1A: function(callback){
+        var t = processor._reg.a & 1 ? 0 : 0x80;
+        processor._reg.f &= 0x10;
+        processor._reg.f += t;
+        processor._reg.f += (1<<5);
+        processor._reg.f &= 0xBF;
+    },
+
+    //0x7C
+    BIT_7H: function(callback){
+        var t = 0;
+        if(processor._reg.h&(1<<7==0)){
+            t = 0x80;
+        }
+        processor._reg.f &= 0x10;
+        processor._reg.f += t;
+        processor._reg.f += (1<<5);
+        processor._reg.f &= 0xBF;
+    },
+
+}
+
+CBFnMap = [
+    //0x00
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0x10
+    cbInstr.NOP,
+    cbInstr.RL_C,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0x20
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0x30
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0x40
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.BIT_1A,
+
+    //0x50
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0x60
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0x70
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.BIT_7H,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0x80
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0x90
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0xA0
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0xB0
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0xC0
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0xD0
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0xE0
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+    //0xF0
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+    cbInstr.NOP,
+
+]
 
 RegFnMap = [
     // 0x00
@@ -3537,7 +3880,7 @@ RegFnMap = [
     instr.OR_d8,
     instr.R_30,
     instr.LDHL_SPd8,
-    instr.LD_SPHL
+    instr.LD_SPHL,
     instr.Ann,
     instr.EI,
     instr.UNDOC,
@@ -3566,12 +3909,14 @@ processor = {
     _clock: {m:0, t:0},
 
     ohShit: 0,
+    _debugTrace: [],
 
-    /* Maybe check should increment the pc register?*/
+    /* Implement timing check here to see if GPU interrupt? */
     check: function(){
         processor._reg.pc++;
         if(processor.ohShit==1){
             console.log("Ohshit button activated! ABORTING!")
+            console.log((processor._debugTrace).join("\n"))
         } else {
             processor.exec();
         }
@@ -3579,24 +3924,40 @@ processor = {
 
     exec: function(){
         //read the instruction in program counter
-        ins = MM.read(processor._reg.pc);
-        console.log("Read instruction: 0x"+ ins.toString(16) +" ("+ MM._booting +")")
+
+        var ins = MM.read(processor._reg.pc);
+        if(ins==undefined){ 
+            processor.ohShit = 1; 
+            processor._debugTrace.push("NO INSTRUCTION! DUMPING:\n"); 
+            processor._debugTrace.push(JSON.stringify(processor._reg));
+            processor._debugTrace.push(JSON.stringify(processor._clock));
+            processor.check(); 
+         }
+        var str = "Exec called! Opcode: 0x" + ins.toString(16)
+        processor._debugTrace.push(str)
+        processor._debugTrace.push(JSON.stringify(processor._clock))
+        processor._debugTrace.push(JSON.stringify(processor._reg))
+        console.log("Read instruction: 0x"+ ins.toString(16) +" (booting:"+ MM._booting +")")
         if(!RegFnMap[ins]){
             console.log("FATAL! MISSING INSTRUCTION: 0x" + (MM.read(processor._reg.pc)).toString(16))
             processor.ohShit = 1;
+        } else if (ins==0xCB) {
+            /* CB OPCODE PREFIX*/
+            processor._reg.pc++;
+            ins = MM.read(processor._reg.pc);
+            CBFnMap[ins](function(){
+                processor._clock.m+=processor._reg.m;
+                processor._clock.t+=processor._reg.t;
+                processor.check()
+            });
+
         } else {
             RegFnMap[ins](function(){
-                console.log("Hit the callback!")
+                processor._clock.m+=processor._reg.m;
+                processor._clock.t+=processor._reg.t;
                 processor.check()
             });
         }
-        processor._clock.m+=processor._reg.m;
-        processor._clock.t+=processor._reg.t;
-        console.log(processor._reg)
-        /*
-            Check for interrupts, do GPU stuff?
-            Still need to work out how timing works
-        */
 
     },
     init: function(){

@@ -70,7 +70,7 @@ MM = {
     read: function(addr){
         if(MM._booting != 1){
             return MM._memory[addr]
-        } 
+        }
 
         else if(MM._booting==1){
             if(addr<0x100){
