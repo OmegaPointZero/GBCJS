@@ -59,6 +59,7 @@ instr = {
         CB: function(callback) {
            /* Read next byte to lookup CB function in that table */
             processor._reg.pc++;
+            console.log(MM.read(processor._reg.pc))
             /* 
                 here shall go a function to find 
                 the CB-prefixed instructions
@@ -1077,32 +1078,36 @@ instr = {
         //0x20
         JRNZn: function(callback){
             /* 
-                HOKAY so we are having some problems right here
-                LIKE FOR SOME REASON, IT DOESN'T DO THE LOOP DURING THE 
-                INITIAL BOOT SEQUENCE, IT DOENS'T JUMP AND I THINK IT STARTS TO
-                EXECUTE DATA
-            */
+                CONDITIONAL JUMP TO 8-BIT SIGNED IMMEDIATE IF PREVIOUS RESULT 
+                WAS NOT ZERO 
+
+                FUNCTION OBJECTIVES: 
+                    1. CHECK IF THE ZERO FLAG IS SET (_REG.F&=0x80>0)
+                    2. IF IT IS NOT SET, INTERPRET THE NEXT BYTE AS SIGNED
+                        2a. SEE IF HIGHEST BIT IS SET
+                        2b. GET NUMBER WITHOUT HIGHEST BIT (B&=0X7F)
+                        2c. IF NO HIGHEST BIT SET, ADD NUMBER TO _REG.PC
+                        2d. IF HIGHEST BIT SET, ADD NUMBER TO _REG.PC AND -128
+                    3. IF IT IS, CONTIN8UE (DON'T JUMP OR FUCK WITH _REG.PC)
+
+            */ 
+
             processor._reg.pc++;
             var byte = MM.read(processor._reg.pc)
-            // if zero flag is not set
-            console.log("flags: 0x"+byte.toString(16)+" ("+byte.toString(2)+")")
-            console.log(byte&(1<<7))
-            if(processor._reg.f&(1<<7) == 0x80){
-                console.log("Zero flag not set, JRNZn()")
-                if(byte&(1<<7)==0x80){
-                    var o = byte&0x7f;
-                    processor._reg.pc = processor._reg.pc + (-128+o);
-                    processor._reg.m = 3;
-                    processor._reg.t = 12;
-                } else if(byte&(1<<7)!=0x80){
-                    processor._reg.pc = processor._reg.pc + byte
-                    processor._reg.m = 3;
-                    processor._reg.t = 12;
-                }
+//            console.log("Inside the JRNZn function, relative jump ? 0x" + ("00"+byte.toString(16)).substr(-2))
+      //      console.log("Here are the flags (processor._reg.f): " + processor._reg.f.toString(2))
+        //    console.log(processor._reg.f&0x80)
+            if(!(processor._reg.f & 0x80 )) {
+                console.log("Zero flag isnt set, previous calc resulted in !0") 
+                var num = byte & 0x7F;
+                var neg = byte & 0x80;
+                console.log("num: "+num+", neg: "+neg)
+                num -= neg;
+                processor._reg.pc += num;
+                processor._reg.pc -= 1;
             } else {
-                processor._reg.m = 2;
-                processor._reg.t = 8;
-            } 
+                console.log("Interpret this as the jump not being taken, prev calc==0")
+            }
             callback()
          },
 
@@ -1226,7 +1231,7 @@ instr = {
                 processor._reg.m=5;
                 processor._reg.t=20;
                 processor._reg.pc = processor._reg.sp -1;
-                processor._reg.ps += 2;
+                processor._reg.sp += 2;
             }
             callback();
         },
@@ -1239,7 +1244,7 @@ instr = {
                 processor._reg.m=5;
                 processor._reg.t=20;
                 processor._reg.pc = processor._reg.sp -1;
-                processor._reg.ps += 2;
+                processor._reg.sp += 2;
             }
             callback();
         },
@@ -1247,7 +1252,7 @@ instr = {
         //0xC9
         RET: function(callback) { 
             processor._reg.pc = processor._reg.sp;
-            processor._reg.ps += 2;
+            processor._reg.sp += 2;
             processor._reg.m=4;
             processor._reg.t=16;
             callback();
@@ -1257,7 +1262,7 @@ instr = {
         RETI: function(callback) { 
             /* FIGURE OUT WHAT THIS DOES DIFFERENT FROM RET */
             processor._reg.pc = processor._reg.sp;
-            processor._reg.ps += 2;
+            processor._reg.sp += 2;
             processor._reg.m=4;
             processor._reg.t=16;
             callback();
@@ -2639,7 +2644,7 @@ if((hl+bc)&0xff!=(hl+bc)){
             processor._reg.a -= t
             processor._reg.a < 0 ? processor._reg.f += (1<<4) : 0
             processor._reg.a &= 0xff,
-            processor._reg.a == 0 ? flags+= (1<<7) : 0
+            processor._reg.a == 0 ? processor._reg.f+= (1<<7) : 0
             processor._reg.m = 1;
             processor._reg.t = 4;
             callback()
@@ -3296,14 +3301,25 @@ cbInstr = {
 
     //0x7C
     BIT_7H: function(callback){
-        var t = 0;
-        if(processor._reg.h&(1<<7==0)){
-            t = 0x80;
-        }
+        /*
+            TEST IF BIT 7 IS SET (7 6 5 4 3 2 1 0) 
+            FLAGS SET:
+                ZERO (1 IF HIGHEST BIT NOT SET) (Z 0x80)
+                SUBTRACTION 0 (0x40)
+                HALF-CARRY 1 (0x20)
+            FLAGS PRESERVED: 
+                CARRY (C 0x10)
+        */
+    //    console.log("checking byte 7 of processor._reg.h")
+  //      console.log("Processor._reg.h: "+processor._reg.h.toString(2))
+        var t = processor._reg.h & 0x80;
+     //   console.log("var t (value of highest bit) :" + t + " (0x"+t.toString(16)+", "+t.toString(2))
         processor._reg.f &= 0x10;
-        processor._reg.f += t;
+        if(t!=0x80){
+            processor._reg.f += 0x80;
+        }
         processor._reg.f += (1<<5);
-        processor._reg.f &= 0xBF;
+     //   console.log("Finished flags register: "+processor._reg.f+" ("+ (processor._reg.f).toString(2)+")" )
     },
 
 }
@@ -3937,7 +3953,7 @@ processor = {
         processor._debugTrace.push(str)
         processor._debugTrace.push(JSON.stringify(processor._clock))
         processor._debugTrace.push(JSON.stringify(processor._reg))
-        console.log("Read instruction: 0x"+ ins.toString(16) +" (booting:"+ MM._booting +")")
+        console.log("Read instruction: 0x"+ ins.toString(16) +" (booting:"+ MM._booting +")\nNext sequentialInstruction: 0x"+(MM.read(processor._reg.pc+1).toString(16)))
         if(!RegFnMap[ins]){
             console.log("FATAL! MISSING INSTRUCTION: 0x" + (MM.read(processor._reg.pc)).toString(16))
             processor.ohShit = 1;
