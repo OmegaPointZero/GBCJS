@@ -7,8 +7,11 @@ $('document').ready(function(){
 
     const exLoop = function(){
         for(i=1;i>0;i++){
-            a = processor.exec()
-            //console.log("return from processor.exec(): "+a)
+            /* 
+                Exec calls check(). Check will check timing and interrupt flags. 
+                IF an interrupt is to occur, do that, other wise call exec().
+            */
+            processor.exec()
         }
     }
 

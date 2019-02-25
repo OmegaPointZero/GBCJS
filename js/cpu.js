@@ -794,7 +794,7 @@ instr = {
         LD_aHLA: function(callback){
             var hl = processor._reg.h<<8;
             hl += processor._reg.l;
-            MM.write(MM.read(hl),processor._reg.a)
+            MM.write(hl,processor._reg.a)
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
