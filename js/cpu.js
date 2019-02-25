@@ -3925,8 +3925,9 @@ processor = {
         if(processor.ohShit==1){
             console.log("Ohshit button activated! ABORTING!")
             console.log((processor._debugTrace).join("\n"))
+            return 1;
         } else {
-            processor.exec();
+            return 0;
         }
     },
 
@@ -3939,43 +3940,48 @@ processor = {
             processor._debugTrace.push("NO INSTRUCTION! DUMPING:\n"); 
             processor._debugTrace.push(JSON.stringify(processor._reg));
             processor._debugTrace.push(JSON.stringify(processor._clock));
-            processor.check(); 
+            var c = processor.check(); 
+            return c;
          }
         var str = "Exec called! Opcode: 0x" + ins.toString(16)
         processor._debugTrace.push(str)
         processor._debugTrace.push(JSON.stringify(processor._clock))
         processor._debugTrace.push(JSON.stringify(processor._reg))
-        console.log("Read instruction: 0x"+ ins.toString(16) +" (booting:"+ MM._booting +")")
+        if(processor._reg.pc>13)console.log("Read instruction: 0x"+ ins.toString(16) +" (booting:"+ MM._booting +")")
         if(!RegFnMap[ins]){
             console.log("FATAL! MISSING INSTRUCTION: 0x" + (MM.read(processor._reg.pc)).toString(16))
             processor.ohShit = 1;
+            var c = processor.check(); 
+            return c;
         } else if (ins==0xCB) {
             /* CB OPCODE PREFIX*/
             processor._reg.pc++;
             ins = MM.read(processor._reg.pc);
-            console.log(ins.toString(16))
             CBFnMap[ins](function(){
                 processor._clock.m+=processor._reg.m;
                 processor._clock.t+=processor._reg.t;
-                processor.check()
+                var c = processor.check(); 
+                return c;
             });
 
         } else {
             RegFnMap[ins](function(){
                 processor._clock.m+=processor._reg.m;
                 processor._clock.t+=processor._reg.t;
-                processor.check()
+                var c = processor.check(); 
+                return c;
             });
         }
 
     },
+
+
     init: function(){
         console.log("Initializing CPU...")
         processor._reg = { a:0, f:0, b:0, c:0, d:0, e:0, h:0,l:0, sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
         processor._halt = 0;
         processor._stop = 0;
         processor._clock = {m:0, t:0};
-        processor.exec();
     },        
 }
 

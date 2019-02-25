@@ -4,7 +4,15 @@ $('document').ready(function(){
         b = ("0" + byte.toString(16))
         return b.slice(-2)
     })
-  
+
+    const exLoop = function(){
+        for(i=1;i>0;i++){
+            a = processor.exec()
+            //console.log("return from processor.exec(): "+a)
+        }
+    }
+
+
     const readFile = (function(file){
         var myFiles = $('#ROMUpload').prop('files');
         var myFile = myFiles[0]
@@ -13,6 +21,8 @@ $('document').ready(function(){
         fr.onload = function(){
             var game = new Uint8Array(fr.result)
             MM.load(game);
+            processor.init();
+            exLoop()
         }
 
         fr.readAsArrayBuffer(myFile)
