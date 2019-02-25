@@ -828,9 +828,11 @@ instr = {
         //0x21
         LD_HLnn: function(callback){
             processor._reg.pc++;
-            processor._reg.h = MM.read(processor._reg.pc)
-            processor._reg.pc++;
             processor._reg.l = MM.read(processor._reg.pc)
+            processor._reg.pc++;
+            processor._reg.h = MM.read(processor._reg.pc)
+            var hl = processor._reg.h<<8;
+            hl += processor._reg.l;
             processor._reg.m=3;
             processor._reg.t=12;
             callback()
@@ -1094,20 +1096,13 @@ instr = {
 
             processor._reg.pc++;
             var byte = MM.read(processor._reg.pc)
-//            console.log("Inside the JRNZn function, relative jump ? 0x" + ("00"+byte.toString(16)).substr(-2))
-      //      console.log("Here are the flags (processor._reg.f): " + processor._reg.f.toString(2))
-        //    console.log(processor._reg.f&0x80)
             if(!(processor._reg.f & 0x80 )) {
-                console.log("Zero flag isnt set, previous calc resulted in !0") 
                 var num = byte & 0x7F;
                 var neg = byte & 0x80;
-                console.log("num: "+num+", neg: "+neg)
                 num -= neg;
                 processor._reg.pc += num;
                 processor._reg.pc -= 1;
-            } else {
-                console.log("Interpret this as the jump not being taken, prev calc==0")
-            }
+            } 
             callback()
          },
 
@@ -3310,16 +3305,13 @@ cbInstr = {
             FLAGS PRESERVED: 
                 CARRY (C 0x10)
         */
-    //    console.log("checking byte 7 of processor._reg.h")
-  //      console.log("Processor._reg.h: "+processor._reg.h.toString(2))
         var t = processor._reg.h & 0x80;
-     //   console.log("var t (value of highest bit) :" + t + " (0x"+t.toString(16)+", "+t.toString(2))
         processor._reg.f &= 0x10;
         if(t!=0x80){
             processor._reg.f += 0x80;
         }
         processor._reg.f += (1<<5);
-     //   console.log("Finished flags register: "+processor._reg.f+" ("+ (processor._reg.f).toString(2)+")" )
+        callback()
     },
 
 }
@@ -3953,7 +3945,7 @@ processor = {
         processor._debugTrace.push(str)
         processor._debugTrace.push(JSON.stringify(processor._clock))
         processor._debugTrace.push(JSON.stringify(processor._reg))
-        console.log("Read instruction: 0x"+ ins.toString(16) +" (booting:"+ MM._booting +")\nNext sequentialInstruction: 0x"+(MM.read(processor._reg.pc+1).toString(16)))
+        console.log("Read instruction: 0x"+ ins.toString(16) +" (booting:"+ MM._booting +")")
         if(!RegFnMap[ins]){
             console.log("FATAL! MISSING INSTRUCTION: 0x" + (MM.read(processor._reg.pc)).toString(16))
             processor.ohShit = 1;
@@ -3961,6 +3953,7 @@ processor = {
             /* CB OPCODE PREFIX*/
             processor._reg.pc++;
             ins = MM.read(processor._reg.pc);
+            console.log(ins.toString(16))
             CBFnMap[ins](function(){
                 processor._clock.m+=processor._reg.m;
                 processor._clock.t+=processor._reg.t;
