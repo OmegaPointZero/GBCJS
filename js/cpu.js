@@ -613,11 +613,10 @@ instr = {
          },
     
         //0xe2
-        LD_ff00cA: function(callback){
-            var ac = 0xff00;
-            processor._reg.pc++;
-            ac += MM.read(processor._reg.pc);
-            MM.write(ac,processor._reg.a);
+        LD_ff00C: function(callback){
+            var o = 0xff00;
+            o += processor._reg.c
+            MM.write(o,processor._reg.a);
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -625,10 +624,9 @@ instr = {
            
         //0xf2
         LD_Aff00c: function(callback){
-            var ac = 0xff00;
-            processor._reg.pc++;
-            ac += MM.read(processor._reg.pc);
-            write(processor._reg.a,MM.read(ac));
+            var o = 0xff00;
+            o += processor._reg.c
+            processor._reg.a = MM.read(o)
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -3897,6 +3895,21 @@ RegFnMap = [
     instr.R_38,
 ]
 
+const download = (function(filename, data) {
+    var blob = new Blob([data], {type: 'text/csv'});
+    if(window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveBlob(blob, filename);
+    }
+    else{
+        var elem = window.document.createElement('a');
+        elem.href = window.URL.createObjectURL(blob);
+        elem.download = filename;        
+        document.body.appendChild(elem);
+        elem.click();        
+        document.body.removeChild(elem);
+    }
+});
+
 processor = {
 
     //  Single byte registers are a, b, c, d, e, h, l    
@@ -3924,7 +3937,7 @@ processor = {
         processor._reg.pc++;
         if(processor.ohShit==1){
             console.log("Ohshit button activated! ABORTING!")
-            console.log((processor._debugTrace).join("\n"))
+            download("CRASHLOG",((processor._debugTrace).slice(-1000)).join("\n"))
             return 1;
         } else {
             return 0;

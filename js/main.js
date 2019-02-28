@@ -11,7 +11,11 @@ $('document').ready(function(){
                 Exec calls check(). Check will check timing and interrupt flags. 
                 IF an interrupt is to occur, do that, other wise call exec().
             */
-            processor.exec()
+            if(processor.ohShit!=1){
+                processor.exec()
+            } else {
+                break;
+            }
         }
     }
 
