@@ -615,7 +615,7 @@ instr = {
         //0xe2
         LD_ff00C: function(callback){
             var o = 0xff00;
-            o += processor._reg.c
+            o += processor._reg.c;
             MM.write(o,processor._reg.a);
             processor._reg.m=2;
             processor._reg.t=8;
@@ -625,8 +625,8 @@ instr = {
         //0xf2
         LD_Aff00c: function(callback){
             var o = 0xff00;
-            o += processor._reg.c
-            processor._reg.a = MM.read(o)
+            o += processor._reg.c;
+            processor._reg.a = MM.read(o);
             processor._reg.m=2;
             processor._reg.t=8;
             callback()
@@ -1244,7 +1244,7 @@ instr = {
 
         //0xC9
         RET: function(callback) { 
-            processor._reg.pc = processor._reg.sp;
+            processor._reg.pc = MM.read(processor._reg.sp);
             processor._reg.sp += 2;
             processor._reg.m=4;
             processor._reg.t=16;
@@ -3861,7 +3861,7 @@ RegFnMap = [
     //0xE0
     instr.LD_ff00nA,
     instr.POP_HL,
-    instr.LD_ff00cA,
+    instr.LD_ff00C,
     instr.UNDOC,
     instr.UNDOC,
     instr.PUSH_HL,
@@ -3937,7 +3937,8 @@ processor = {
         processor._reg.pc++;
         if(processor.ohShit==1){
             console.log("Ohshit button activated! ABORTING!")
-            download("CRASHLOG",((processor._debugTrace).slice(-1000)).join("\n"))
+            download("CRASHLOG",((processor._debugTrace).slice(-1000)).join("\n"));
+            download("MEMDUMP",(MM._memory).join(''));
             return 1;
         } else {
             return 0;
@@ -3960,7 +3961,7 @@ processor = {
         processor._debugTrace.push(str)
         processor._debugTrace.push(JSON.stringify(processor._clock))
         processor._debugTrace.push(JSON.stringify(processor._reg))
-        if(processor._reg.pc>13)console.log("Read instruction: 0x"+ ins.toString(16) +" (booting:"+ MM._booting +")")
+        if(processor._reg.pc>13)console.log("Read instruction: 0x"+ ("0"+ins.toString(16)).slice(-2) +" (booting:"+ MM._booting +")")
         if(!RegFnMap[ins]){
             console.log("FATAL! MISSING INSTRUCTION: 0x" + (MM.read(processor._reg.pc)).toString(16))
             processor.ohShit = 1;

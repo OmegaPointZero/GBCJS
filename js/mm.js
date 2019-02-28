@@ -87,7 +87,7 @@ MM = {
 //    write value to address
     write: function(addr,value){
         val = value.toString()
-        //console.log("Writing "+val+" to 0x"+ ("00"+addr.toString(16)).substr(-4) )
+        console.log("Writing "+val+" to 0x"+ ("00"+addr.toString(16)).substr(-4) )
         var v = val.split('');
         for(var k=0;k<v.length;k++){
             MM._memory[addr+k]=v[k]
