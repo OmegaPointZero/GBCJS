@@ -1243,9 +1243,13 @@ instr = {
         },
 
         //0xC9
-        RET: function(callback) { 
-            processor._reg.pc = MM.read(processor._reg.sp);
-            processor._reg.sp += 2;
+        RET: function(callback) {
+            var pc = MM._memory[processor._reg.sp];
+            pc << 8;
+            processor._reg.sp++;
+            pc += MM._memory[processor._reg.sp];
+            processor._reg.pc = pc;
+            processor._reg.sp++;
             processor._reg.m=4;
             processor._reg.t=16;
             callback();
@@ -3923,6 +3927,18 @@ processor = {
     //           7 6 5 4 3 2 1 0
     //           Z N H C 0 0 0 0
 
+    _breakpoint: 0xf0, /* Offset instruction to stop executing instructions at or above */
+    startTime: new Date().getTime(),
+    chkbrk: function(){
+        if(processor._reg.pc>=processor._breakpoint){
+            processor.ohShit = 1;
+        }
+        var ny = new Date().getTime()
+        if(ny-processor.startTime>100000){
+            processor.ohShit = 1;
+        }
+    },
+
     _reg: { a:0, f:0, b:0, c:0, d:0, e:0, h:0, l:0,
         sp:0, pc:0, t:0, m:0, f:0, i:0, ime:0},
     _halt: 0,
@@ -3935,10 +3951,14 @@ processor = {
     /* Implement timing check here to see if GPU interrupt? */
     check: function(){
         processor._reg.pc++;
+        processor.chkbrk();
         if(processor.ohShit==1){
             console.log("Ohshit button activated! ABORTING!")
+            processor._debugTrace.push(JSON.stringify(processor._reg));
+            processor._debugTrace.push(JSON.stringify(processor._clock));
+            processor._debugTrace.push("Booting? "+MM._booting)
             download("CRASHLOG",((processor._debugTrace).slice(-1000)).join("\n"));
-            download("MEMDUMP",(MM._memory).join(''));
+            download("MEMDUMP",(MM._memory).join('\n'));
             return 1;
         } else {
             return 0;
@@ -3961,7 +3981,7 @@ processor = {
         processor._debugTrace.push(str)
         processor._debugTrace.push(JSON.stringify(processor._clock))
         processor._debugTrace.push(JSON.stringify(processor._reg))
-        if(processor._reg.pc>13)console.log("Read instruction: 0x"+ ("0"+ins.toString(16)).slice(-2) +" (booting:"+ MM._booting +")")
+        //if(processor._reg.pc>13)console.log("Read instruction: 0x"+ ("0"+ins.toString(16)).slice(-2) +" (booting:"+ MM._booting +")")
         if(!RegFnMap[ins]){
             console.log("FATAL! MISSING INSTRUCTION: 0x" + (MM.read(processor._reg.pc)).toString(16))
             processor.ohShit = 1;

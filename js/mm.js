@@ -46,23 +46,23 @@ MM = {
     _cartridge: [],
     _memory: [],
 
-    init: function(){
-        console.log("Loading game!");
-        for(i=0;i<0xffff;i++){
-            MM._memory[i]=0
-        }
-    },
-
     load: function(game){
         console.log(game)
         MM._cartridge = game;
-        MM.reset();
+        MM._booting = 1;
+        for(i=0;i<0x10000;i++){
+            MM._memory[i]=0;
+            if(i==0xfff){
+                console.log("Memory Initialized");
+                return 1;
+            }
+        }
     },
 
-    reset: function(){
-        MM._booting = 1;
-        MM.init();
-    },
+
+
+
+
 
     //long_addr: return value of 2 registers
     l_addr: function(first, second){
@@ -87,7 +87,7 @@ MM = {
 //    write value to address
     write: function(addr,value){
         val = value.toString()
-        console.log("Writing "+val+" to 0x"+ ("00"+addr.toString(16)).substr(-4) )
+        //console.log("Writing "+val+" to 0x"+ ("00"+addr.toString(16)).substr(-4) )
         var v = val.split('');
         for(var k=0;k<v.length;k++){
             MM._memory[addr+k]=v[k]

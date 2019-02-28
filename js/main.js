@@ -16,6 +16,9 @@ $('document').ready(function(){
             } else {
                 break;
             }
+            if(i==255){
+                i=1;
+            }
         }
     }
 
@@ -27,9 +30,12 @@ $('document').ready(function(){
         const fr = new FileReader();
         fr.onload = function(){
             var game = new Uint8Array(fr.result)
-            MM.load(game);
-            processor.init();
-            exLoop()
+            var loaded = MM.load(game);
+            if(loaded==1){
+                processor.init();
+                exLoop();
+            }
+
         }
 
         fr.readAsArrayBuffer(myFile)
